@@ -2,12 +2,16 @@
 
 A quiet, native battery and power monitor for **Apple Silicon Macs running macOS 14+**. SwiftUI, WidgetKit, IOKit, and a small read-only AppleSMC client. No third-party packages, accounts, network requests, root helper, or charging-control writes.
 
-![Design preview with example readings](Docs/Previews/overview.png)
+| Light | Dark |
+| --- | --- |
+| <img src="Docs/Previews/menu-light.png" width="260" alt="Compact menu in light appearance, with example readings"> | <img src="Docs/Previews/menu-dark.png" width="260" alt="Compact menu in dark appearance, with example readings"> |
 
 ## What’s included
 
 - Small, medium, and large desktop / Notification Center widgets.
-- A draggable floating widget and menu bar panel, sampled every five seconds while awake.
+- A compact, 260-point menu bar dropdown with adaptive live sampling. The dropdown opens on launch; there is no automatic overview window or Dock icon.
+- Explicit **Open Window** and **Float** actions for the detailed overview and draggable floating readout.
+- Light and dark appearances that follow macOS, including the dropdown, windows, floating panel, and desktop widgets.
 - Battery health, current charge, full-charge and original capacity in mAh, cycle count, temperature, and estimated charging / battery time when available.
 - Actual charger input, device load, and signed battery power. Advertised charger wattage is labeled separately as the connection’s capability.
 - A ten-minute in-memory power chart. History begins when the app opens; no invented points or persisted usage log.
@@ -39,7 +43,7 @@ The app is generated at:
 build/DerivedData/Build/Products/Release/BatteryHealth++.app
 ```
 
-Keep the app running for live sampling. Desktop widgets sample independently, even when the app is closed. Closing the overview leaves the menu bar app running; Quit stops it. Use **Float widget** to show the draggable panel. Hover its upper-right corner for the close button, or reopen it from the menu bar / Window menu.
+Keep the app running for live sampling. Desktop widgets sample independently, even when the app is closed. Click the menu bar battery to open or dismiss the dropdown; Escape or clicking outside dismisses it. Choose **Open Window** (⌘O) for the overview or **Float** (⇧⌘F) for the floating panel. Its upper-right close button hides it. **Settings…** (⌘,) includes launch at login. Closing a window (⌘W) leaves the menu bar app running; **Quit** (⌘Q) stops it. Relaunching opens only the dropdown, even if a window was open when the app quit.
 
 For a stable installation, copy the built app into Applications and launch it there. Right-click the desktop → **Edit Widgets** → search **BatteryHealth**. The widget extension is embedded in the containing app. Widget clicks open the app’s overview.
 
@@ -49,7 +53,7 @@ For distribution, select your signing team and choose unique bundle identifiers 
 
 | Reading | Meaning |
 | --- | --- |
-| Health | Full-charge capacity ÷ design capacity; can differ from System Settings’ estimate. The ring is bounded, while the numerical percentage retains values over 100%. |
+| Health | Full-charge capacity ÷ design capacity; can differ from System Settings’ estimate. The numerical percentage retains values over 100%. |
 | From charger | Measured DC power entering the Mac, not the adapter’s maximum rating or wall-socket consumption. |
 | Mac | System-load telemetry; on desktop Macs, the supported SMC system-power sensor. |
 | Battery in / out | Positive telemetry charges the battery; negative telemetry supplies the Mac. The interface labels the direction explicitly. |

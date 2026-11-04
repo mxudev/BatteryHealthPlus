@@ -1,96 +1,78 @@
 import SwiftUI
 
+/// A compact directional diagram. Line widths are decorative, not wattage scales.
 struct PowerFlowView: View {
     let snapshot: PowerSnapshot
-    var compact = false
+    private var onBattery: Bool { snapshot.externalPower == false }
+    private var batteryOut: Bool { (snapshot.battery?.watts ?? 0) < -0.1 }
+    private var batteryIdle: Bool { snapshot.battery.map { abs($0.watts) <= 0.1 } ?? false }
 
-    private var discharging: Bool { (snapshot.battery?.watts ?? 0) < -0.1 }
     var body: some View {
-        VStack(alignment: .leading, spacing: compact ? 16 : 24) {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Label(onBattery ? "Battery" : "Charger", systemImage: onBattery ? "battery.75percent" : "powerplug")
+                        .font(.system(size: 10)).foregroundStyle(.secondary)
+                    WattValue(value: onBattery ? snapshot.battery.map { abs($0.watts) } : snapshot.input?.watts,
+                              size: 21, estimated: (onBattery ? snapshot.battery : snapshot.input)?.estimated ?? false)
+                }.frame(maxWidth: .infinity, alignment: .leading)
+                flow.frame(width: 34, height: 44).accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 12) {
+                    destination("Device", reading: snapshot.device, color: Palette.blue)
+                    if !onBattery {
+                        destination(snapshot.battery == nil ? "Battery" : batteryOut ? "Battery out" : batteryIdle ? "Battery idle" : "Battery in",
+                                    reading: snapshot.battery, color: Palette.mint, magnitude: true)
+                    }
+                }.frame(maxWidth: .infinity, alignment: .leading)
+            }.frame(height: 72)
             HStack {
-                Eyebrow(text: snapshot.kind == .desktop ? "System power" : "Power flow")
-                Spacer()
-                if let rating = snapshot.adapterRatingWatts {
-                    Text("\(Display.decimal(rating, digits: 0)) W connection")
-                        .font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary)
+                Text("Power flow")
+                Spacer(minLength: 4)
+                if !onBattery, let rating = snapshot.adapterRatingWatts {
+                    Text("\(Display.decimal(rating, digits: 0)) W limit")
                 }
-            }
-            if snapshot.kind == .desktop {
-                HStack(spacing: 18) {
-                    Image(systemName: "desktopcomputer").font(.system(size: 34, weight: .ultraLight)).foregroundStyle(Palette.mint)
-                    VStack(alignment: .leading, spacing: 5) {
-                        WattValue(value: snapshot.device?.watts, size: compact ? 36 : 48, color: Palette.mint,
-                                  estimated: snapshot.device?.estimated ?? false)
-                        Text("Total system draw").font(.caption).foregroundStyle(.secondary)
-                    }
-                }.padding(.vertical, 8)
-                Text(snapshot.device == nil ? "Power sensor unavailable on this Mac." : "Measured at the system. Wall consumption may differ.")
-                    .font(.system(size: 11)).foregroundStyle(.secondary)
-            } else {
-                HStack(alignment: .center, spacing: compact ? 10 : 16) {
-                    VStack(alignment: .leading, spacing: 9) {
-                        Image(systemName: snapshot.externalPower == false ? "battery.75percent" : "powerplug")
-                            .font(.system(size: compact ? 22 : 26, weight: .light)).foregroundStyle(Palette.mint)
-                        Text(snapshot.externalPower == false ? "From battery" : "From charger")
-                            .font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
-                        WattValue(value: snapshot.externalPower == false ? snapshot.battery.map { abs($0.watts) } : snapshot.input?.watts,
-                                  size: compact ? 26 : 34, color: Palette.mint,
-                                  estimated: snapshot.externalPower == false ? snapshot.battery?.estimated ?? false : snapshot.input?.estimated ?? false)
-                    }.frame(maxWidth: .infinity, alignment: .leading)
-                    if snapshot.externalPower == false {
-                        Image(systemName: "arrow.right").foregroundStyle(Palette.mint.opacity(0.6))
-                            .frame(width: compact ? 30 : 46).accessibilityHidden(true)
-                    } else {
-                        FlowBranch(batteryOut: discharging).stroke(Palette.mint.opacity(0.45), style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
-                            .frame(width: compact ? 30 : 46, height: compact ? 76 : 88)
-                            .accessibilityHidden(true)
-                    }
-                    VStack(alignment: .leading, spacing: compact ? 14 : 22) {
-                        destination("Mac", icon: "laptopcomputer", reading: snapshot.device, color: Palette.blue)
-                        if snapshot.externalPower != false {
-                            destination(discharging ? "Battery out" : "Battery in", icon: discharging ? "battery.50percent" : "battery.75percent",
-                                    reading: snapshot.battery.map { .init(abs($0.watts), source: $0.source, estimated: $0.estimated) }, color: Palette.mint)
-                        }
-                    }.frame(maxWidth: .infinity, alignment: .leading)
-                }
-                if !compact {
-                    Text(snapshot.externalPower == false ? "Your battery is supplying the Mac." :
-                            discharging ? "The battery is supplementing the charger." : "Power delivered to your Mac and battery.")
-                        .font(.system(size: 11)).foregroundStyle(.secondary)
-                }
-            }
+            }.font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1)
+        }.accessibilityElement(children: .combine)
+    }
+
+    private func destination(_ name: String, reading: PowerReading?, color: Color, magnitude: Bool = false) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(name).font(.system(size: 9)).foregroundStyle(.secondary)
+            Text(Display.watts(reading, magnitude: magnitude))
+                .font(.system(size: 13, weight: .medium)).monospacedDigit().foregroundStyle(color)
         }
     }
 
-    private func destination(_ name: String, icon: String, reading: PowerReading?, color: Color) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon).font(.system(size: 15, weight: .regular)).foregroundStyle(color)
-                .frame(width: 22)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(name).font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary)
-                WattValue(value: reading?.watts, size: compact ? 22 : 26, estimated: reading?.estimated ?? false)
+    private var flow: some View {
+        Canvas { context, size in
+            let middle = CGPoint(x: size.width * 0.42, y: size.height / 2)
+            func route(to end: CGPoint, color: Color, active: Bool, reverse: Bool = false) {
+                var path = Path()
+                path.move(to: middle)
+                path.addCurve(to: end,
+                              control1: CGPoint(x: middle.x, y: end.y),
+                              control2: CGPoint(x: middle.x + 6, y: end.y))
+                context.stroke(path, with: .color(active ? color.opacity(0.65) : .secondary.opacity(0.25)),
+                               style: StrokeStyle(lineWidth: 1.3, lineCap: .round))
+                guard active else { return }
+                let tip = reverse ? CGPoint(x: end.x - 10, y: end.y) : end
+                let tail = reverse ? tip.x + 3 : tip.x - 3
+                var arrow = Path()
+                arrow.move(to: CGPoint(x: tail, y: tip.y - 2.5))
+                arrow.addLine(to: tip)
+                arrow.addLine(to: CGPoint(x: tail, y: tip.y + 2.5))
+                context.stroke(arrow, with: .color(color.opacity(0.8)),
+                               style: StrokeStyle(lineWidth: 1.3, lineCap: .round, lineJoin: .round))
             }
-        }
-    }
-}
-
-private struct FlowBranch: Shape {
-    var batteryOut = false
-    func path(in r: CGRect) -> Path {
-        Path { p in
-            let mid = r.midX
-            p.move(to: CGPoint(x: 0, y: r.midY)); p.addLine(to: CGPoint(x: mid - 8, y: r.midY))
-            p.addQuadCurve(to: CGPoint(x: mid, y: r.midY - 8), control: CGPoint(x: mid, y: r.midY))
-            p.addLine(to: CGPoint(x: mid, y: 8))
-            p.addQuadCurve(to: CGPoint(x: mid + 8, y: 0), control: CGPoint(x: mid, y: 0))
-            p.addLine(to: CGPoint(x: r.maxX, y: 0))
-            p.move(to: CGPoint(x: mid, y: r.midY - 8)); p.addLine(to: CGPoint(x: mid, y: r.maxY - 8))
-            p.addQuadCurve(to: CGPoint(x: mid + 8, y: r.maxY), control: CGPoint(x: mid, y: r.maxY))
-            p.addLine(to: CGPoint(x: r.maxX, y: r.maxY))
-            p.move(to: CGPoint(x: r.maxX - 4, y: -3)); p.addLine(to: CGPoint(x: r.maxX, y: 0)); p.addLine(to: CGPoint(x: r.maxX - 4, y: 3))
-            let x = batteryOut ? mid + 8 : r.maxX
-            let dx: CGFloat = batteryOut ? 4 : -4
-            p.move(to: CGPoint(x: x + dx, y: r.maxY - 3)); p.addLine(to: CGPoint(x: x, y: r.maxY)); p.addLine(to: CGPoint(x: x + dx, y: r.maxY + 3))
+            var stem = Path()
+            stem.move(to: CGPoint(x: 0, y: middle.y)); stem.addLine(to: middle)
+            context.stroke(stem, with: .color(.secondary.opacity(0.35)), style: StrokeStyle(lineWidth: 1.3, lineCap: .round))
+            route(to: CGPoint(x: size.width, y: onBattery ? middle.y : 0), color: Palette.blue,
+                  active: (snapshot.device?.watts ?? 0) > 0.1)
+            if !onBattery {
+                route(to: CGPoint(x: size.width, y: size.height), color: Palette.mint,
+                      active: snapshot.battery != nil && !batteryIdle, reverse: batteryOut)
+            }
         }
     }
 }

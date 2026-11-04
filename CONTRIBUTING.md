@@ -13,6 +13,6 @@ To work on the app:
 
 Keep hardware access read-only. Preserve unknown values as unavailable, label calculated estimates, and add representative fixtures when changing undocumented sensor parsing. Document the hardware and OS version used to verify sensor changes.
 
-For interface changes, check small, medium, and large widgets, the floating panel, and the desktop power-only layout. Preview fixtures must remain separate from live measurements.
+For interface changes, check the dropdown, overview, floating panel, all three widget sizes, and desktop power-only layouts in both light and dark appearance. Verify that launch shows only the dropdown and that Open Window and Float are explicit actions. Preview fixtures must remain separate from live measurements.
 
 Contributions are provided under the repository's [MIT license](LICENSE).

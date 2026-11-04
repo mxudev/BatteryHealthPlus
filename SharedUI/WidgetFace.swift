@@ -5,77 +5,57 @@ enum FaceSize { case small, medium, large }
 struct WidgetFace: View {
     let snapshot: PowerSnapshot
     var size: FaceSize = .large
-    var live = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: size == .small ? 10 : 18) {
-            HStack(spacing: 7) {
-                Image(systemName: "bolt.heart.fill").foregroundStyle(Palette.mint)
-                Text("BatteryHealth").font(.system(size: 11, weight: .semibold))
-                Text("++").font(.system(size: 10, weight: .bold)).foregroundStyle(Palette.mint).padding(.leading, -5)
+        VStack(alignment: .leading, spacing: size == .small ? 5 : 10) {
+            HStack {
+                Text("BatteryHealth++").font(.system(size: 10, weight: .semibold))
                 Spacer(minLength: 0)
-                if live { Circle().fill(Palette.mint).frame(width: 5, height: 5) }
+                Image(systemName: snapshot.kind == .desktop ? "bolt" : "battery.75percent")
+                    .font(.system(size: 11)).foregroundStyle(.secondary)
             }
-            if size == .small {
-                smallContent
+            if size == .large {
+                TelemetryReadout(snapshot: snapshot)
             } else if size == .medium {
-                HStack(spacing: 20) {
-                    if snapshot.batteryPresent { HealthRing(percent: snapshot.healthPercent, size: 88, line: 5) }
-                    VStack(alignment: .leading, spacing: 8) {
-                        WattValue(value: snapshot.device?.watts, size: 30, estimated: snapshot.device?.estimated ?? false)
-                        Text("Device power").font(.system(size: 10)).foregroundStyle(.secondary)
+                HStack(alignment: .top, spacing: 24) {
+                    primary.frame(width: 105, alignment: .leading)
+                    VStack(spacing: 2) {
                         if snapshot.batteryPresent {
-                            Text("\(Display.decimal(snapshot.chargePercent, digits: 0))% charged · \(snapshot.cycles.map(String.init) ?? "—") cycles")
-                                .font(.system(size: 10)).foregroundStyle(.secondary)
+                            MetricRow(label: "Health", value: "\(Display.decimal(snapshot.healthPercent, digits: 0))%")
+                            MetricRow(label: "Charger", value: Display.watts(snapshot.input))
+                            MetricRow(label: "Battery", value: Display.watts(snapshot.battery))
                         }
+                        MetricRow(label: "Device", value: Display.watts(snapshot.device))
                     }
-                }.frame(maxHeight: .infinity)
+                }
             } else {
+                primary
                 if snapshot.batteryPresent {
-                    HStack(spacing: 23) {
-                        HealthRing(percent: snapshot.healthPercent, size: 105, line: 6)
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(snapshot.status).font(.system(size: 17, weight: .medium))
-                            Text("\(Display.decimal(snapshot.chargePercent, digits: 0))% charged")
-                                .font(.system(size: 12)).foregroundStyle(.secondary)
-                            Text("\(snapshot.cycles.map(String.init) ?? "—") cycles")
-                                .font(.system(size: 11, design: .rounded)).foregroundStyle(Palette.mint)
-                        }
-                    }.frame(maxWidth: .infinity, alignment: .center)
-                    Rectangle().fill(.primary.opacity(0.07)).frame(height: 1)
+                    MetricRow(label: "Health", value: "\(Display.decimal(snapshot.healthPercent, digits: 0))%")
+                    MetricRow(label: "Device", value: Display.watts(snapshot.device))
                 }
-                PowerFlowView(snapshot: snapshot, compact: true)
-                if !snapshot.batteryPresent { Spacer(minLength: 0) }
             }
-            HStack(spacing: 4) {
-                if live {
-                    Text("Live · updates every 5s")
-                } else {
-                    Text("Sampled")
-                    Text(snapshot.date, style: .time)
-                }
+            Spacer(minLength: 0)
+            HStack(spacing: 3) {
+                Text("Sampled")
+                Text(snapshot.date, style: .time)
                 Spacer(minLength: 0)
-                if !live { Image(systemName: "arrow.up.right") }
-            }.font(.system(size: 9, weight: .medium)).foregroundStyle(.tertiary)
-        }
-        .accessibilityElement(children: .contain)
+            }.font(.system(size: 8)).foregroundStyle(.secondary)
+        }.accessibilityElement(children: .contain)
     }
 
-    @ViewBuilder private var smallContent: some View {
-        if snapshot.batteryPresent {
-            HStack(alignment: .firstTextBaseline, spacing: 1) {
-                Text(Display.decimal(snapshot.healthPercent, digits: 0)).font(.system(size: 42, weight: .medium, design: .rounded))
-                Text("%").font(.system(size: 18)).foregroundStyle(Palette.mint)
-            }.monospacedDigit()
-            Text("Battery health").font(.system(size: 11)).foregroundStyle(.secondary)
-            Spacer(minLength: 0)
-            Text("\(Display.decimal(snapshot.chargePercent, digits: 0))% charged").font(.system(size: 11, weight: .medium)).foregroundStyle(Palette.mint)
-        } else {
-            Spacer(minLength: 0)
-            WattValue(value: snapshot.device?.watts, size: 39, color: Palette.mint,
-                      estimated: snapshot.device?.estimated ?? false)
-            Text("System power").font(.system(size: 11)).foregroundStyle(.secondary)
-            Spacer(minLength: 0)
+    private var primary: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if snapshot.batteryPresent {
+                HStack(alignment: .firstTextBaseline, spacing: 1) {
+                    Text(Display.decimal(snapshot.chargePercent, digits: 0)).font(.system(size: 30, weight: .medium)).tracking(-1)
+                    Text("%").font(.system(size: 13)).foregroundStyle(.secondary)
+                }.monospacedDigit()
+                Text(snapshot.status).font(.system(size: 10)).foregroundStyle(Palette.mint)
+            } else {
+                WattValue(value: snapshot.device?.watts, size: 30, estimated: snapshot.device?.estimated ?? false)
+                Text("System draw").font(.system(size: 10)).foregroundStyle(.secondary)
+            }
         }
     }
 }

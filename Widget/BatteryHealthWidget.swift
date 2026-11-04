@@ -28,9 +28,8 @@ struct PowerWidgetView: View {
     var body: some View {
         WidgetFace(snapshot: entry.snapshot, size: family == .systemSmall ? .small : family == .systemMedium ? .medium : .large)
             .containerBackground(for: .widget) {
-                LinearGradient(colors: [Palette.surface, Palette.ink], startPoint: .topLeading, endPoint: .bottomTrailing)
+                Palette.background
             }
-            .environment(\.colorScheme, .dark)
             .widgetURL(URL(string: "batteryhealthplus://overview"))
     }
 }

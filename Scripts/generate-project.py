@@ -114,7 +114,7 @@ base_info = {"CFBundleDevelopmentRegion": "en", "CFBundleExecutable": "$(EXECUTA
              "CFBundleName": "$(PRODUCT_NAME)", "CFBundleShortVersionString": "$(MARKETING_VERSION)",
              "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)", "LSMinimumSystemVersion": "$(MACOSX_DEPLOYMENT_TARGET)"}
 app_info = dict(base_info, CFBundlePackageType="APPL", CFBundleDisplayName="BatteryHealth++", NSPrincipalClass="NSApplication",
-                NSHighResolutionCapable=True, LSArchitecturePriority=["arm64"],
+                NSHighResolutionCapable=True, LSArchitecturePriority=["arm64"], LSUIElement=True,
                 CFBundleURLTypes=[{"CFBundleURLName": "Overview", "CFBundleURLSchemes": ["batteryhealthplus"]}])
 widget_info = dict(base_info, CFBundlePackageType="XPC!", CFBundleDisplayName="BatteryHealth++",
                    NSExtension={"NSExtensionPointIdentifier": "com.apple.widgetkit-extension"})
