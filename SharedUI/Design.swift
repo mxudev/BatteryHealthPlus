@@ -54,7 +54,7 @@ struct MetricRow: View {
             Text(label).foregroundStyle(.secondary)
             Spacer(minLength: 6)
             Text(value).monospacedDigit().foregroundStyle(tint)
-        }.font(.system(size: 11)).frame(minHeight: 17)
+        }.font(.system(size: 12)).frame(minHeight: 17)
             .accessibilityElement(children: .combine)
     }
 }

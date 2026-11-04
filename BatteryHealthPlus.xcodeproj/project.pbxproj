@@ -47,12 +47,6 @@
 			"path" = "SharedUI/TelemetryReadout.swift";
 			"sourceTree" = "SOURCE_ROOT";
 		};
-		"49E044DA228763370B09BC75" = {
-			"isa" = "PBXFileReference";
-			"lastKnownFileType" = "sourcecode.swift";
-			"path" = "SharedUI/WidgetFace.swift";
-			"sourceTree" = "SOURCE_ROOT";
-		};
 		"04B87BF38A498454BB819EA9" = {
 			"isa" = "PBXFileReference";
 			"lastKnownFileType" = "sourcecode.swift";
@@ -77,12 +71,6 @@
 			"path" = "Sources/PowerCore/TelemetryParser.swift";
 			"sourceTree" = "SOURCE_ROOT";
 		};
-		"8EDE308E42C583D23A8F7E9C" = {
-			"isa" = "PBXFileReference";
-			"lastKnownFileType" = "sourcecode.swift";
-			"path" = "Widget/BatteryHealthWidget.swift";
-			"sourceTree" = "SOURCE_ROOT";
-		};
 		"3685E330EC5277A9DD5661C6" = {
 			"isa" = "PBXFileReference";
 			"lastKnownFileType" = "folder.assetcatalog";
@@ -96,19 +84,11 @@
 			"sourceTree" = "BUILT_PRODUCTS_DIR";
 			"includeInIndex" = "0";
 		};
-		"F231F6FE549E641636571AA6" = {
-			"isa" = "PBXFileReference";
-			"explicitFileType" = "wrapper.app-extension";
-			"path" = "BatteryHealthWidget.appex";
-			"sourceTree" = "BUILT_PRODUCTS_DIR";
-			"includeInIndex" = "0";
-		};
 		"FBDC4F23F93125BBEEAE800C" = {
 			"isa" = "PBXGroup";
 			"name" = "Products";
 			"children" = (
 				"8BCD5BC4CDFDF0918087C782",
-				"F231F6FE549E641636571AA6",
 			);
 			"sourceTree" = "<group>";
 		};
@@ -122,175 +102,14 @@
 				"EAD5D4FF5ABABD50CDA172A0",
 				"FD91EB58B3801D5F15A1C409",
 				"26CAFA27D1AAB373FF2A0FC7",
-				"49E044DA228763370B09BC75",
 				"04B87BF38A498454BB819EA9",
 				"5094ACEC4240010A161C2EBD",
 				"A90ACFD70EE2F519F84BD19B",
 				"C683D9AC099129EE5F173AEA",
-				"8EDE308E42C583D23A8F7E9C",
 				"3685E330EC5277A9DD5661C6",
 				"FBDC4F23F93125BBEEAE800C",
 			);
 			"sourceTree" = "<group>";
-		};
-		"11418C8F4E8D27788BD56BE8" = {
-			"isa" = "PBXBuildFile";
-			"fileRef" = "EAD5D4FF5ABABD50CDA172A0";
-		};
-		"8FA940ADF04D101CE4F418E3" = {
-			"isa" = "PBXBuildFile";
-			"fileRef" = "FD91EB58B3801D5F15A1C409";
-		};
-		"415D3AE5190A2A6323CB92E4" = {
-			"isa" = "PBXBuildFile";
-			"fileRef" = "26CAFA27D1AAB373FF2A0FC7";
-		};
-		"4116AA4817E3270D37B87A8B" = {
-			"isa" = "PBXBuildFile";
-			"fileRef" = "49E044DA228763370B09BC75";
-		};
-		"FD32109FC6A2E2812AD9FE52" = {
-			"isa" = "PBXBuildFile";
-			"fileRef" = "04B87BF38A498454BB819EA9";
-		};
-		"D932196FA39E3D6BBA19E55C" = {
-			"isa" = "PBXBuildFile";
-			"fileRef" = "5094ACEC4240010A161C2EBD";
-		};
-		"9A02EE45DEF4698E576DBC4D" = {
-			"isa" = "PBXBuildFile";
-			"fileRef" = "A90ACFD70EE2F519F84BD19B";
-		};
-		"778B1045B6EF76429796F664" = {
-			"isa" = "PBXBuildFile";
-			"fileRef" = "C683D9AC099129EE5F173AEA";
-		};
-		"251ADA0DFCA813FAE2640FEF" = {
-			"isa" = "PBXBuildFile";
-			"fileRef" = "8EDE308E42C583D23A8F7E9C";
-		};
-		"2D81737A052BBAAD15A6D3C1" = {
-			"isa" = "PBXSourcesBuildPhase";
-			"buildActionMask" = "2147483647";
-			"files" = (
-				"11418C8F4E8D27788BD56BE8",
-				"8FA940ADF04D101CE4F418E3",
-				"415D3AE5190A2A6323CB92E4",
-				"4116AA4817E3270D37B87A8B",
-				"FD32109FC6A2E2812AD9FE52",
-				"D932196FA39E3D6BBA19E55C",
-				"9A02EE45DEF4698E576DBC4D",
-				"778B1045B6EF76429796F664",
-				"251ADA0DFCA813FAE2640FEF",
-			);
-			"runOnlyForDeploymentPostprocessing" = "0";
-		};
-		"7683A40AB86681224A5404DF" = {
-			"isa" = "PBXFrameworksBuildPhase";
-			"buildActionMask" = "2147483647";
-			"files" = (
-			);
-			"runOnlyForDeploymentPostprocessing" = "0";
-		};
-		"FE608D3A8638F8175D740C08" = {
-			"isa" = "PBXResourcesBuildPhase";
-			"buildActionMask" = "2147483647";
-			"files" = (
-			);
-			"runOnlyForDeploymentPostprocessing" = "0";
-		};
-		"8EEBAB68363C2B0DAE00DB30" = {
-			"isa" = "XCBuildConfiguration";
-			"name" = "Debug";
-			"buildSettings" = {
-				"SDKROOT" = "macosx";
-				"MACOSX_DEPLOYMENT_TARGET" = "14.0";
-				"ARCHS" = "arm64";
-				"SUPPORTED_PLATFORMS" = "macosx";
-				"SWIFT_VERSION" = "5.0";
-				"CLANG_ENABLE_MODULES" = "YES";
-				"CODE_SIGN_STYLE" = "Automatic";
-				"CODE_SIGN_IDENTITY" = "-";
-				"ENABLE_HARDENED_RUNTIME" = "YES";
-				"CURRENT_PROJECT_VERSION" = "1";
-				"MARKETING_VERSION" = "1.0.0";
-				"COMBINE_HIDPI_IMAGES" = "YES";
-				"SWIFT_EMIT_LOC_STRINGS" = "YES";
-				"LD_RUNPATH_SEARCH_PATHS" = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				"PRODUCT_NAME" = "BatteryHealthWidget";
-				"PRODUCT_MODULE_NAME" = "BatteryHealthWidget";
-				"PRODUCT_BUNDLE_IDENTIFIER" = "com.batteryhealthplus.mac.widget";
-				"INFOPLIST_FILE" = "Config/Widget-Info.plist";
-				"CODE_SIGN_ENTITLEMENTS" = "Config/Widget.entitlements";
-				"ENABLE_APP_SANDBOX" = "YES";
-				"APPLICATION_EXTENSION_API_ONLY" = "YES";
-				"SKIP_INSTALL" = "YES";
-				"SWIFT_OPTIMIZATION_LEVEL" = "-Onone";
-				"DEBUG_INFORMATION_FORMAT" = "dwarf";
-				"SWIFT_ACTIVE_COMPILATION_CONDITIONS" = "DEBUG";
-			};
-		};
-		"9B3B545F8CBA1ACB550689D3" = {
-			"isa" = "XCBuildConfiguration";
-			"name" = "Release";
-			"buildSettings" = {
-				"SDKROOT" = "macosx";
-				"MACOSX_DEPLOYMENT_TARGET" = "14.0";
-				"ARCHS" = "arm64";
-				"SUPPORTED_PLATFORMS" = "macosx";
-				"SWIFT_VERSION" = "5.0";
-				"CLANG_ENABLE_MODULES" = "YES";
-				"CODE_SIGN_STYLE" = "Automatic";
-				"CODE_SIGN_IDENTITY" = "-";
-				"ENABLE_HARDENED_RUNTIME" = "YES";
-				"CURRENT_PROJECT_VERSION" = "1";
-				"MARKETING_VERSION" = "1.0.0";
-				"COMBINE_HIDPI_IMAGES" = "YES";
-				"SWIFT_EMIT_LOC_STRINGS" = "YES";
-				"LD_RUNPATH_SEARCH_PATHS" = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				"PRODUCT_NAME" = "BatteryHealthWidget";
-				"PRODUCT_MODULE_NAME" = "BatteryHealthWidget";
-				"PRODUCT_BUNDLE_IDENTIFIER" = "com.batteryhealthplus.mac.widget";
-				"INFOPLIST_FILE" = "Config/Widget-Info.plist";
-				"CODE_SIGN_ENTITLEMENTS" = "Config/Widget.entitlements";
-				"ENABLE_APP_SANDBOX" = "YES";
-				"APPLICATION_EXTENSION_API_ONLY" = "YES";
-				"SKIP_INSTALL" = "YES";
-				"SWIFT_OPTIMIZATION_LEVEL" = "-O";
-				"DEBUG_INFORMATION_FORMAT" = "dwarf-with-dsym";
-			};
-		};
-		"90D2FDBFA05FD172ED432B0F" = {
-			"isa" = "XCConfigurationList";
-			"buildConfigurations" = (
-				"8EEBAB68363C2B0DAE00DB30",
-				"9B3B545F8CBA1ACB550689D3",
-			);
-			"defaultConfigurationIsVisible" = "0";
-			"defaultConfigurationName" = "Release";
-		};
-		"FF700E0204CA58FE8CBBF19A" = {
-			"isa" = "PBXNativeTarget";
-			"buildConfigurationList" = "90D2FDBFA05FD172ED432B0F";
-			"buildPhases" = (
-				"2D81737A052BBAAD15A6D3C1",
-				"7683A40AB86681224A5404DF",
-				"FE608D3A8638F8175D740C08",
-			);
-			"buildRules" = (
-			);
-			"dependencies" = (
-			);
-			"name" = "BatteryHealthWidget";
-			"productName" = "BatteryHealthWidget";
-			"productReference" = "F231F6FE549E641636571AA6";
-			"productType" = "com.apple.product-type.app-extension";
 		};
 		"81CB489C4294670D306CFFFC" = {
 			"isa" = "PBXBuildFile";
@@ -320,10 +139,6 @@
 			"isa" = "PBXBuildFile";
 			"fileRef" = "26CAFA27D1AAB373FF2A0FC7";
 		};
-		"048D8E039D871AF18D4D0EFB" = {
-			"isa" = "PBXBuildFile";
-			"fileRef" = "49E044DA228763370B09BC75";
-		};
 		"CBBC62325FA5BE17D242A3F7" = {
 			"isa" = "PBXBuildFile";
 			"fileRef" = "04B87BF38A498454BB819EA9";
@@ -351,7 +166,6 @@
 				"769B19FE7C1FF0F468DD8B48",
 				"E68A1CC081DEA506FB0AA1D2",
 				"F21E22082E6B711C0235C6F9",
-				"048D8E039D871AF18D4D0EFB",
 				"CBBC62325FA5BE17D242A3F7",
 				"DA117FF9EBF4D932473ABD68",
 				"6ECB8AC817A9C0CF64CF4F6E",
@@ -377,38 +191,6 @@
 				"2E03FC9C8D896B37E45626A1",
 			);
 			"runOnlyForDeploymentPostprocessing" = "0";
-		};
-		"FB1EA9F939ACC40B6A74BC43" = {
-			"isa" = "PBXBuildFile";
-			"fileRef" = "F231F6FE549E641636571AA6";
-			"settings" = {
-				"ATTRIBUTES" = (
-					"RemoveHeadersOnCopy",
-				);
-			};
-		};
-		"CC531F55156D1B4CD472E876" = {
-			"isa" = "PBXCopyFilesBuildPhase";
-			"buildActionMask" = "2147483647";
-			"dstPath" = "";
-			"dstSubfolderSpec" = "13";
-			"files" = (
-				"FB1EA9F939ACC40B6A74BC43",
-			);
-			"name" = "Embed App Extensions";
-			"runOnlyForDeploymentPostprocessing" = "0";
-		};
-		"5632E9FDC70F2DC0B2D4E983" = {
-			"isa" = "PBXContainerItemProxy";
-			"containerPortal" = "98F54143AB4E86B28C3AFEE0";
-			"proxyType" = "1";
-			"remoteGlobalIDString" = "FF700E0204CA58FE8CBBF19A";
-			"remoteInfo" = "BatteryHealthWidget";
-		};
-		"4DA75641BEA61A776F463463" = {
-			"isa" = "PBXTargetDependency";
-			"target" = "FF700E0204CA58FE8CBBF19A";
-			"targetProxy" = "5632E9FDC70F2DC0B2D4E983";
 		};
 		"E9B2E96ABC5F6856F2BE79CF" = {
 			"isa" = "XCBuildConfiguration";
@@ -491,12 +273,10 @@
 				"971ED9D05B25DB6C4D7680D4",
 				"78AE8C6BEB2A40A6D824CCEE",
 				"364863F9F2E558B0F50473FC",
-				"CC531F55156D1B4CD472E876",
 			);
 			"buildRules" = (
 			);
 			"dependencies" = (
-				"4DA75641BEA61A776F463463",
 			);
 			"name" = "BatteryHealthPlus";
 			"productName" = "BatteryHealth++";
@@ -583,7 +363,6 @@
 			"projectRoot" = "";
 			"targets" = (
 				"7D1043473D55BFA90E8530D3",
-				"FF700E0204CA58FE8CBBF19A",
 			);
 		};
 	};

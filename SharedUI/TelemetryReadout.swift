@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A shared dense readout for the dropdown, floating panel and large widget.
+/// A shared dense readout for the dropdown and floating panel.
 struct TelemetryReadout: View {
     let snapshot: PowerSnapshot
     var body: some View {
@@ -16,8 +16,8 @@ struct TelemetryReadout: View {
                     Spacer()
                     VStack(alignment: .trailing, spacing: 3) {
                         Text(snapshot.status).foregroundStyle(snapshot.charging == true ? Palette.mint : .primary)
-                            .font(.system(size: 11, weight: .medium))
-                        Text(Display.remaining(snapshot)).font(.system(size: 10)).foregroundStyle(.secondary)
+                            .font(.system(size: 12, weight: .medium))
+                        Text(Display.remaining(snapshot)).font(.system(size: 11)).foregroundStyle(.secondary)
                     }
                 }
                 ChargeLine(percent: snapshot.chargePercent)
@@ -25,7 +25,7 @@ struct TelemetryReadout: View {
                 HStack(alignment: .firstTextBaseline) {
                     WattValue(value: snapshot.device?.watts, size: 30, estimated: snapshot.device?.estimated ?? false)
                     Spacer()
-                    Text("System draw").font(.system(size: 10)).foregroundStyle(.secondary)
+                    Text("System draw").font(.system(size: 11)).foregroundStyle(.secondary)
                 }
             }
             if snapshot.kind != .desktop {
@@ -46,11 +46,11 @@ struct TelemetryReadout: View {
                     Text("\(Display.decimal(snapshot.voltage, digits: 2)) V")
                     Spacer()
                     Text("\(Display.decimal(snapshot.currentAmps, digits: 2)) A")
-                }.font(.system(size: 10)).monospacedDigit().foregroundStyle(.secondary)
+                }.font(.system(size: 11)).monospacedDigit().foregroundStyle(.secondary)
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel("Temperature \(Display.decimal(snapshot.temperatureC)) Celsius, voltage \(Display.decimal(snapshot.voltage, digits: 2)) volts, current \(Display.decimal(snapshot.currentAmps, digits: 2)) amps")
             } else if snapshot.device == nil {
-                Text("Power sensor unavailable").font(.system(size: 10)).foregroundStyle(.secondary)
+                Text("Power sensor unavailable").font(.system(size: 11)).foregroundStyle(.secondary)
             }
         }
     }

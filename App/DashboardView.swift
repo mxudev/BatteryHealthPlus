@@ -3,7 +3,7 @@ import Charts
 
 struct DashboardView: View {
     // Content dimensions, excluding the native window title bar.
-    static let minimumContentSize = NSSize(width: 520, height: 540)
+    static let minimumContentSize = NSSize(width: 520, height: 560)
     let snapshot: PowerSnapshot
     let history: [PowerPoint]
     var onFloat: () -> Void = {}
@@ -24,7 +24,7 @@ struct DashboardView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(snapshot.kind == .desktop ? "Power" : "Battery").font(.system(size: 17, weight: .semibold))
-                    Text(snapshot.model).font(.system(size: 10)).foregroundStyle(.secondary)
+                    Text(snapshot.model).font(.system(size: 11)).foregroundStyle(.secondary)
                 }
                 Spacer()
                 Button(action: onFloat) { Label("Float", systemImage: "pip") }.controlSize(.small)
@@ -35,8 +35,8 @@ struct DashboardView: View {
                     headline("Health", value: Display.decimal(snapshot.healthPercent, digits: 0), unit: "%")
                     Spacer()
                     VStack(alignment: .trailing, spacing: 5) {
-                        Text(snapshot.status).font(.system(size: 11, weight: .medium)).foregroundStyle(Palette.mint)
-                        Text(Display.remaining(snapshot)).font(.system(size: 10)).foregroundStyle(.secondary)
+                        Text(snapshot.status).font(.system(size: 12, weight: .medium)).foregroundStyle(Palette.mint)
+                        Text(Display.remaining(snapshot)).font(.system(size: 11)).foregroundStyle(.secondary)
                     }
                 }
                 ChargeLine(percent: snapshot.chargePercent)
@@ -70,7 +70,7 @@ struct DashboardView: View {
                 Text(snapshot.isStale() ? "Waiting for reading" : "Live")
                 Spacer()
                 Button("Readings & sources") { showSources = true }.buttonStyle(.plain)
-            }.font(.system(size: 10)).foregroundStyle(.secondary)
+            }.font(.system(size: 11)).foregroundStyle(.secondary)
         }.padding(20).background(Palette.background)
     }
 
@@ -151,7 +151,7 @@ struct SourcesView: View {
             }
             Divider()
             Text("≈ indicates a calculated estimate. Sensors sample at different times, so readings may not add up exactly. Positive battery power means charging; negative means discharging.")
-            Text("Health is full-charge capacity ÷ design capacity. It can differ from System Settings. The app shows live readings; macOS schedules desktop widgets.")
+            Text("Health is full-charge capacity ÷ design capacity. It can differ from System Settings. The app shows live readings.")
             ForEach(snapshot.notes, id: \.self) { Text($0).foregroundStyle(Palette.amber) }
             HStack { Spacer(); Button("Done") { dismiss() }.keyboardShortcut(.defaultAction).controlSize(.small) }
         }.font(.system(size: 11)).foregroundStyle(.secondary).padding(20).frame(width: 400)

@@ -40,21 +40,15 @@ import SwiftUI
                     Divider()
                 }
             }.padding(10).frame(width: 260).background(Palette.background), name: "power-flow-states")
-            save(FloatingCard(snapshot: snapshot), name: "live-widget")
+            save(FloatingCard(snapshot: snapshot), name: "floating-panel")
             save(DashboardView(snapshot: snapshot, history: points)
                 .frame(width: DashboardView.minimumContentSize.width,
                        height: DashboardView.minimumContentSize.height), name: "overview")
             save(MenuCard(snapshot: desktop).background(Palette.background)
                 .clipShape(RoundedRectangle(cornerRadius: 10)), name: "desktop-menu")
-            save(WidgetFace(snapshot: desktop).padding(16).frame(width: 360, height: 360)
-                .background(Palette.background).clipShape(RoundedRectangle(cornerRadius: 18)), name: "desktop-widget")
-            for (name, size, width, height) in [("small", FaceSize.small, 170.0, 170.0), ("medium", .medium, 360.0, 170.0), ("large", .large, 360.0, 360.0)] {
-                save(WidgetFace(snapshot: snapshot, size: size).padding(16).frame(width: width, height: height)
-                    .background(Palette.background).clipShape(RoundedRectangle(cornerRadius: 18)), name: "widget-\(name)")
-            }
         }
         // Keep existing README links pointing to the current design.
-        for name in ["overview", "live-widget", "desktop-widget", "widget-small", "widget-medium", "widget-large"] {
+        for name in ["overview", "floating-panel"] {
             if let data = try? Data(contentsOf: directory.appendingPathComponent("\(name)-dark.png")) {
                 try? data.write(to: directory.appendingPathComponent("\(name).png"))
             }

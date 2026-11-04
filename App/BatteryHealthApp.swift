@@ -130,7 +130,7 @@ import ServiceManagement
     @objc private func showSettings() {
         popover.performClose(nil)
         if settings == nil {
-            let window = makeWindow(title: "Settings", size: NSSize(width: 360, height: 240))
+            let window = makeWindow(title: "Settings", size: NSSize(width: 360, height: 140))
             window.contentView = NSHostingView(rootView: SettingsView().padding(20).frame(width: 360))
             settings = window
         }
@@ -207,9 +207,9 @@ struct MenuCard: View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Text("BatteryHealth++").font(.system(size: 11, weight: .semibold))
+                    Text("BatteryHealth++").font(.system(size: 12, weight: .semibold))
                     Spacer()
-                    Text(snapshot.isStale() ? "Waiting" : "Live").font(.system(size: 9)).foregroundStyle(.secondary)
+                    Text(snapshot.isStale() ? "Waiting" : "Live").font(.system(size: 10)).foregroundStyle(.secondary)
                 }
                 TelemetryReadout(snapshot: snapshot)
             }.padding(10)
@@ -238,7 +238,7 @@ private struct MenuAction: View {
                 Text(title)
                 Spacer()
                 Text(shortcut).foregroundStyle(hovering ? Color.white.opacity(0.7) : Color.secondary)
-            }.font(.system(size: 12)).padding(.horizontal, 8).frame(height: 24)
+            }.font(.system(size: 13)).padding(.horizontal, 8).frame(height: 24)
                 .foregroundStyle(hovering ? Color.white : Color.primary)
                 .background(hovering ? Color(nsColor: .selectedContentBackgroundColor) : .clear, in: RoundedRectangle(cornerRadius: 4))
                 .contentShape(Rectangle())
@@ -257,7 +257,7 @@ private struct MenuAction: View {
         }
         let panel = LivePanel(contentRect: NSRect(x: 0, y: 0, width: 260, height: 320),
                               styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-        panel.title = "Live power widget"
+        panel.title = "Live power"
         panel.isFloatingPanel = true
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
@@ -297,13 +297,13 @@ struct FloatingCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("BatteryHealth++").font(.system(size: 11, weight: .semibold))
+                Text("BatteryHealth++").font(.system(size: 12, weight: .semibold))
                 Spacer()
                 Button(action: close) { Image(systemName: "xmark").font(.system(size: 10)).foregroundStyle(.secondary) }
-                    .buttonStyle(.plain).help("Close floating widget").accessibilityLabel("Close floating widget")
+                    .buttonStyle(.plain).help("Close floating panel").accessibilityLabel("Close floating panel")
             }
             TelemetryReadout(snapshot: snapshot)
-            Text(snapshot.isStale() ? "Waiting for a reading" : "Live").font(.system(size: 9)).foregroundStyle(.secondary)
+            Text(snapshot.isStale() ? "Waiting for a reading" : "Live").font(.system(size: 10)).foregroundStyle(.secondary)
         }.padding(12).frame(width: 260).fixedSize(horizontal: false, vertical: true)
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
             .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.primary.opacity(0.10), lineWidth: 0.5))
@@ -328,10 +328,6 @@ struct SettingsView: View {
                     }
                 }
             MetricRow(label: "Appearance", value: "System")
-            Divider()
-            Text("Desktop widgets").fontWeight(.medium)
-            Text("Right-click your desktop → Edit Widgets → BatteryHealth. Desktop refreshes are managed by macOS. Use the floating view for live readings.")
-                .foregroundStyle(.secondary)
             if let error { Text(error).foregroundStyle(.orange) }
         }.font(.system(size: 11)).textSelection(.enabled)
     }

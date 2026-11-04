@@ -17,7 +17,6 @@ public struct PowerReading: Codable, Equatable, Sendable {
 }
 
 public struct PowerSnapshot: Codable, Equatable, Sendable {
-    public static let widgetKind = "BatteryHealthPlusWidget"
     public var date = Date()
     public var model = "Apple Silicon Mac"
     public var kind: MacKind = .unknown

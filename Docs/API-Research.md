@@ -41,15 +41,13 @@ The host app opens the `AppleSMC` service with `IOServiceOpen` and uses external
 
 Reference: the [Stats SMC implementation](https://github.com/exelban/stats/blob/master/SMC/smc.swift) and its [sensor definitions](https://github.com/exelban/stats/blob/master/Modules/Sensors/values.swift) describe the private protocol and system-power sensor. The implementation here is a new, restricted reader with explicit byte offsets; it does not include the referenced project’s fan-writing functionality.
 
-Access worked without root in this session’s unsandboxed app/probe. The development tool sandbox blocked the SMC user client, so the same probe was checked outside that sandbox. The host app is unsandboxed. The WidgetKit extension is sandboxed with `com.apple.security.temporary-exception.iokit-user-client-class` restricted to `AppleSMCClient`, and reads directly at timeline refreshes. A properly bundled, ad-hoc signed probe using the exact widget entitlements successfully read battery properties and `PSTR` inside App Sandbox. Apple documents this mechanism in its [IOKit exception entitlement reference](https://developer.apple.com/library/archive/documentation/Miscellaneous/Reference/EntitlementKeyReference/Chapters/AppSandboxTemporaryExceptionEntitlements.html). Sensor availability and permissions vary by model and OS. No administrator helper or sudo fallback is installed.
+Access worked without root in this session’s unsandboxed app/probe. The development tool sandbox blocked the SMC user client, so the same probe was checked outside that sandbox. The host app is unsandboxed. Sensor availability and permissions vary by model and OS. No administrator helper or sudo fallback is installed.
 
-## Widget architecture
+## Live sampling architecture
 
-[Apple’s widget update documentation](https://developer.apple.com/documentation/widgetkit/keeping-a-widget-up-to-date) makes clear that extensions do not run continuously and reload budgets are system-controlled. This implementation requests 15-minute timelines and timestamps each sample; it makes no five-second WidgetKit refresh promise.
+The menu bar dropdown, overview, and floating panel share the same in-process snapshot. The app samples on a utility task approximately every second while a live view is visible, and every five seconds in the background. Sampling pauses during sleep and refreshes on wake, when opening a live view, and on IOPowerSources notifications. Sensor reads are serialized; an event received during a read queues another refresh.
 
-The app samples on a utility task every five seconds, suspends sampling for sleep, and refreshes on wake. It requests widget reloads every 15 minutes, or on a source transition subject to a one-minute minimum. The floating panel and menu bar observe the live in-process snapshot. The widget samples independently and can work with the app closed.
-
-An App Group cache was investigated but removed: the local ad-hoc build could not write the group container on this OS. Apple’s [App Group access documentation](https://developer.apple.com/documentation/xcode/accessing-app-group-containers) explains that `group.` identifiers require provisioning. Direct sandboxed sampling avoids that signing dependency and keeps readings independent of the host app.
+Window occlusion notifications determine whether live views are visible, including minimization, hiding, and Space changes. Desktop and Notification Center widgets are not included; the floating panel provides the live desktop view. No App Group or extension is required.
 
 ## Other routes considered
 
@@ -60,10 +58,10 @@ An App Group cache was investigated but removed: the local ad-hoc build could no
 
 ## Validation scope
 
-- Built both native targets as arm64 for macOS 14+ with Xcode 27.2.
+- Built the native app as arm64 for macOS 14+ with Xcode 27.2.
 - Executed unit tests against modern and legacy fixtures, invalid inputs, and signed-current edge cases.
 - Read real battery telemetry from a `MacBookPro18,1`, including nested battery temperature and capacity.
 - Verified real input/load/battery values, e.g. 56.519 W / 25.993 W / 30.526 W in one sample.
-- Successfully read `PSTR` without root, both in the normal host and in a bundled sandbox probe with the widget’s exact IOKit entitlement. Desktop presentation is rendered and parser-tested; no physical Mac mini, iMac, Mac Studio, or Mac Pro was available for hardware testing.
-- Rendered all widget sizes and inspected the app’s live overview. Checked native widget-extension registration.
+- Successfully read `PSTR` without root, in the normal host. Desktop presentation is rendered and parser-tested; no physical Mac mini, iMac, Mac Studio, or Mac Pro was available for hardware testing.
+- Rendered the menu, overview, floating panel, and desktop power-only layout in light and dark appearances; inspected the app’s live views.
 - No App Store submission, Developer ID signing, notarization, or older-macOS hardware test was performed.

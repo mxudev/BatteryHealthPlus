@@ -29,15 +29,14 @@ def configs(label, settings):
                defaultConfigurationIsVisible="0", defaultConfigurationName="Release")
 
 source_paths = sorted([*ROOT.glob("Sources/PowerCore/*.swift"), *ROOT.glob("SharedUI/*.swift"),
-                       *ROOT.glob("App/*.swift"), *ROOT.glob("Widget/*.swift")])
+                       *ROOT.glob("App/*.swift")])
 refs = {}
 for path in source_paths:
     relative = str(path.relative_to(ROOT))
     refs[relative] = obj(relative, "PBXFileReference", lastKnownFileType="sourcecode.swift", path=relative, sourceTree="SOURCE_ROOT")
 assets = obj("assets", "PBXFileReference", lastKnownFileType="folder.assetcatalog", path="Assets.xcassets", sourceTree="SOURCE_ROOT")
 app_product = obj("appProduct", "PBXFileReference", explicitFileType="wrapper.application", path="BatteryHealth++.app", sourceTree="BUILT_PRODUCTS_DIR", includeInIndex="0")
-widget_product = obj("widgetProduct", "PBXFileReference", explicitFileType="wrapper.app-extension", path="BatteryHealthWidget.appex", sourceTree="BUILT_PRODUCTS_DIR", includeInIndex="0")
-products = obj("products", "PBXGroup", name="Products", children=[app_product, widget_product], sourceTree="<group>")
+products = obj("products", "PBXGroup", name="Products", children=[app_product], sourceTree="<group>")
 main = obj("main", "PBXGroup", children=[*refs.values(), assets, products], sourceTree="<group>")
 
 common = {"SDKROOT": "macosx", "MACOSX_DEPLOYMENT_TARGET": "14.0", "ARCHS": "arm64",
@@ -46,46 +45,27 @@ common = {"SDKROOT": "macosx", "MACOSX_DEPLOYMENT_TARGET": "14.0", "ARCHS": "arm
           "CURRENT_PROJECT_VERSION": "1", "MARKETING_VERSION": "1.0.0", "COMBINE_HIDPI_IMAGES": "YES",
           "SWIFT_EMIT_LOC_STRINGS": "YES", "LD_RUNPATH_SEARCH_PATHS": ["$(inherited)", "@executable_path/../Frameworks"]}
 
-def target(label, widget=False):
-    files = []
-    for path, ref in refs.items():
-        if path.startswith("App/") and widget or path.startswith("Widget/") and not widget:
-            continue
-        files.append(obj(label + path, "PBXBuildFile", fileRef=ref))
+def target(label):
+    files = [obj(label + path, "PBXBuildFile", fileRef=ref) for path, ref in refs.items()]
     sources = obj(label + "Sources", "PBXSourcesBuildPhase", buildActionMask="2147483647", files=files, runOnlyForDeploymentPostprocessing="0")
     frameworks = obj(label + "Frameworks", "PBXFrameworksBuildPhase", buildActionMask="2147483647", files=[], runOnlyForDeploymentPostprocessing="0")
     resources = obj(label + "Resources", "PBXResourcesBuildPhase", buildActionMask="2147483647",
-                    files=[] if widget else [obj("assetBuild", "PBXBuildFile", fileRef=assets)], runOnlyForDeploymentPostprocessing="0")
+                    files=[obj("assetBuild", "PBXBuildFile", fileRef=assets)], runOnlyForDeploymentPostprocessing="0")
     settings = dict(common)
-    settings.update(PRODUCT_NAME="BatteryHealthWidget" if widget else "BatteryHealth++",
-                    PRODUCT_MODULE_NAME="BatteryHealthWidget" if widget else "BatteryHealthPlus",
-                    PRODUCT_BUNDLE_IDENTIFIER="com.batteryhealthplus.mac.widget" if widget else "com.batteryhealthplus.mac",
-                    INFOPLIST_FILE="Config/Widget-Info.plist" if widget else "Config/App-Info.plist",
-                    CODE_SIGN_ENTITLEMENTS="Config/Widget.entitlements" if widget else "Config/App.entitlements",
-                    ENABLE_APP_SANDBOX="YES" if widget else "NO")
-    if widget:
-        settings.update(APPLICATION_EXTENSION_API_ONLY="YES", SKIP_INSTALL="YES")
-    else:
-        settings.update(ASSETCATALOG_COMPILER_APPICON_NAME="AppIcon")
-    phases = [sources, frameworks, resources]
-    dependencies = []
-    if not widget:
-        embed_file = obj("embedWidget", "PBXBuildFile", fileRef=widget_product, settings={"ATTRIBUTES": ["RemoveHeadersOnCopy"]})
-        phases.append(obj("embedPhase", "PBXCopyFilesBuildPhase", buildActionMask="2147483647", dstPath="", dstSubfolderSpec="13", files=[embed_file], name="Embed App Extensions", runOnlyForDeploymentPostprocessing="0"))
-        proxy = obj("widgetProxy", "PBXContainerItemProxy", containerPortal=uid("project"), proxyType="1", remoteGlobalIDString=uid("widget"), remoteInfo="BatteryHealthWidget")
-        dependencies.append(obj("widgetDependency", "PBXTargetDependency", target=uid("widget"), targetProxy=proxy))
-    return obj(label, "PBXNativeTarget", buildConfigurationList=configs(label, settings), buildPhases=phases,
-               buildRules=[], dependencies=dependencies, name="BatteryHealthWidget" if widget else "BatteryHealthPlus",
-               productName="BatteryHealthWidget" if widget else "BatteryHealth++",
-               productReference=widget_product if widget else app_product,
-               productType="com.apple.product-type.app-extension" if widget else "com.apple.product-type.application")
+    settings.update(PRODUCT_NAME="BatteryHealth++", PRODUCT_MODULE_NAME="BatteryHealthPlus",
+                    PRODUCT_BUNDLE_IDENTIFIER="com.batteryhealthplus.mac",
+                    INFOPLIST_FILE="Config/App-Info.plist", CODE_SIGN_ENTITLEMENTS="Config/App.entitlements",
+                    ENABLE_APP_SANDBOX="NO", ASSETCATALOG_COMPILER_APPICON_NAME="AppIcon")
+    return obj(label, "PBXNativeTarget", buildConfigurationList=configs(label, settings),
+               buildPhases=[sources, frameworks, resources], buildRules=[], dependencies=[],
+               name="BatteryHealthPlus", productName="BatteryHealth++", productReference=app_product,
+               productType="com.apple.product-type.application")
 
-widget = target("widget", True)
 app = target("app")
 project = obj("project", "PBXProject", attributes={"BuildIndependentTargetsInParallel": "YES", "LastUpgradeCheck": "1600"},
               buildConfigurationList=configs("project", common), compatibilityVersion="Xcode 14.0", developmentRegion="en",
               hasScannedForEncodings="0", knownRegions=["en", "Base"], mainGroup=main, productRefGroup=products,
-              projectDirPath="", projectRoot="", targets=[app, widget])
+              projectDirPath="", projectRoot="", targets=[app])
 
 def serialize(value, level=0):
     tab = "\t" * level
@@ -116,11 +96,6 @@ base_info = {"CFBundleDevelopmentRegion": "en", "CFBundleExecutable": "$(EXECUTA
 app_info = dict(base_info, CFBundlePackageType="APPL", CFBundleDisplayName="BatteryHealth++", NSPrincipalClass="NSApplication",
                 NSHighResolutionCapable=True, LSArchitecturePriority=["arm64"], LSUIElement=True,
                 CFBundleURLTypes=[{"CFBundleURLName": "Overview", "CFBundleURLSchemes": ["batteryhealthplus"]}])
-widget_info = dict(base_info, CFBundlePackageType="XPC!", CFBundleDisplayName="BatteryHealth++",
-                   NSExtension={"NSExtensionPointIdentifier": "com.apple.widgetkit-extension"})
-for name, value in [("App-Info.plist", app_info), ("Widget-Info.plist", widget_info),
-                    ("App.entitlements", {}),
-                    ("Widget.entitlements", {"com.apple.security.app-sandbox": True,
-                                             "com.apple.security.temporary-exception.iokit-user-client-class": ["AppleSMCClient"]})]:
+for name, value in [("App-Info.plist", app_info), ("App.entitlements", {})]:
     (ROOT / "Config" / name).write_bytes(plistlib.dumps(value))
 print("Generated BatteryHealthPlus.xcodeproj")

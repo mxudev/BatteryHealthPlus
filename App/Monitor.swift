@@ -1,7 +1,6 @@
 import AppKit
 import IOKit.ps
 import SwiftUI
-import WidgetKit
 
 @MainActor final class Monitor: ObservableObject {
     @Published private(set) var snapshot = PowerSnapshot()
@@ -10,8 +9,6 @@ import WidgetKit
     private let liveWindows = NSHashTable<NSWindow>.weakObjects()
     private var hasVisibleLiveView = false
     private var powerSource: CFRunLoopSource?
-    private var lastReload = Date.distantPast
-    private var lastExternalPower: Bool?
     private var sleeping = false
     private var isRefreshing = false
     private var refreshPending = false
@@ -107,14 +104,7 @@ import WidgetKit
             snapshot = sample
             history.append(PowerPoint(sample))
             history.removeAll { $0.date < sample.date.addingTimeInterval(-600) }
-            let changedSource = lastExternalPower != sample.externalPower
-            // WidgetKit has its own budget; live app sampling doesn't reload it.
-            if sample.date.timeIntervalSince(lastReload) >= 900 ||
-                (changedSource && sample.date.timeIntervalSince(lastReload) >= 60) {
-                WidgetCenter.shared.reloadTimelines(ofKind: PowerSnapshot.widgetKind)
-                lastReload = sample.date
-            }
-            lastExternalPower = sample.externalPower
+
         } while refreshPending
         isRefreshing = false
         scheduleNextRefresh()
