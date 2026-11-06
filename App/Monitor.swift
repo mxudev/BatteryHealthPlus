@@ -8,6 +8,7 @@ import SwiftUI
     private var timer: Timer?
     private let liveWindows = NSHashTable<NSWindow>.weakObjects()
     private var hasVisibleLiveView = false
+    private var menuVisible = false
     private var powerSource: CFRunLoopSource?
     private var sleeping = false
     private var isRefreshing = false
@@ -52,6 +53,13 @@ import SwiftUI
         requestRefresh()
     }
 
+    // Native menus track without activating the app or becoming key windows.
+    func setMenuVisible(_ visible: Bool) {
+        menuVisible = visible
+        updateVisibility(refreshOnReveal: false)
+        if visible { requestRefresh() }
+    }
+
     private func observe(_ name: Notification.Name, center: NotificationCenter = .default,
                          action: @escaping @MainActor (Monitor) -> Void) {
         let token = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
@@ -65,9 +73,9 @@ import SwiftUI
     }
 
     private func updateVisibility(refreshOnReveal: Bool = true) {
-        let visible = !NSApp.isHidden && liveWindows.allObjects.contains {
+        let visible = menuVisible || (!NSApp.isHidden && liveWindows.allObjects.contains {
             $0.isVisible && !$0.isMiniaturized && $0.occlusionState.contains(.visible)
-        }
+        })
         guard visible != hasVisibleLiveView else { return }
         hasVisibleLiveView = visible
         if visible && refreshOnReveal { requestRefresh() }

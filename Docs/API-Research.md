@@ -47,7 +47,7 @@ Access worked without root in this session’s unsandboxed app/probe. The develo
 
 The menu bar dropdown, overview, and floating panel share the same in-process snapshot. The app samples on a utility task approximately every second while a live view is visible, and every five seconds in the background. Sampling pauses during sleep and refreshes on wake, when opening a live view, and on IOPowerSources notifications. Sensor reads are serialized; an event received during a read queues another refresh.
 
-Window occlusion notifications determine whether live views are visible, including minimization, hiding, and Space changes. Desktop and Notification Center widgets are not included; the floating panel provides the live desktop view. No App Group or extension is required.
+NSMenu delegate callbacks track whether the status menu is open; no app activation or key window is needed. Window occlusion notifications track the overview and floating panel, including minimization, hiding, and Space changes. Sampling timers run in common run-loop modes so they continue during native menu tracking. Desktop and Notification Center widgets are not included; the floating panel provides the live desktop view. No App Group or extension is required.
 
 ## Other routes considered
 

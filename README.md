@@ -4,11 +4,13 @@ A quiet, native battery and power monitor for **Apple Silicon Macs running macOS
 
 | Light | Dark |
 | --- | --- |
-| <img src="Docs/Previews/menu-light.png" width="260" alt="Compact menu in light appearance, with example readings"> | <img src="Docs/Previews/menu-dark.png" width="260" alt="Compact menu in dark appearance, with example readings"> |
+| <img src="Docs/Previews/menu-light.png" width="260" alt="Menu readout in light appearance, with example readings"> | <img src="Docs/Previews/menu-dark.png" width="260" alt="Menu readout in dark appearance, with example readings"> |
 
 ## What’s included
 
-- A compact, 260-point menu bar dropdown with adaptive live sampling. The dropdown opens on launch; there is no automatic overview window or Dock icon.
+- A native macOS status menu with a compact live readout and standard menu commands. Opening it does not activate the app or create a key window.
+- A compact battery icon with the percentage inside; charging adds a small bolt. Desktop Macs show system wattage.
+- The menu opens on launch; there is no automatic overview window or Dock icon.
 - Explicit **Open Window** and **Float** actions for the detailed overview and draggable floating readout.
 - Light and dark appearances that follow macOS, including the dropdown, windows, and floating panel.
 - Battery health, current charge, full-charge and original capacity in mAh, cycle count, temperature, and estimated charging / battery time when available.
@@ -17,7 +19,7 @@ A quiet, native battery and power monitor for **Apple Silicon Macs running macOS
 - Automatic power-only presentation on desktop Macs, using the AppleSMC `PSTR` sensor when available.
 - Optional launch at login, enabled explicitly in Settings.
 
-The images in `Docs/Previews` use **design fixtures**, not this Mac’s measurements. Live views always use hardware data. `--render-previews` is the only runtime entry point for design fixtures.
+The images above preview the readout; Open Window, Float, Settings, and Quit are native macOS menu items beneath it. The images in `Docs/Previews` use **design fixtures**, not this Mac’s measurements. Live views always use hardware data. `--render-previews` is the only runtime entry point for design fixtures.
 
 ## Build and run
 

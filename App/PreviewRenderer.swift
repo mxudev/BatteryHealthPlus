@@ -34,6 +34,19 @@ import SwiftUI
             }
             save(MenuCard(snapshot: snapshot).background(Palette.background)
                 .clipShape(RoundedRectangle(cornerRadius: 10)), name: "menu")
+            save(VStack(alignment: .leading, spacing: 12) {
+                ForEach([0, 5, 50, 99, 100], id: \.self) { percent in
+                    HStack(spacing: 16) {
+                        Image(nsImage: StatusIcon.battery(percent: Double(percent), charging: false)).renderingMode(.template)
+                        Image(nsImage: StatusIcon.battery(percent: Double(percent), charging: true)).renderingMode(.template)
+                        Text("\(percent)%").font(.system(size: 11))
+                    }
+                }
+                HStack(spacing: 16) {
+                    Image(nsImage: StatusIcon.battery(percent: nil, charging: false)).renderingMode(.template)
+                    Text("Unavailable").font(.system(size: 11))
+                }
+            }.foregroundStyle(.primary).padding(16).background(Palette.background), name: "status-icons")
             save(VStack(spacing: 16) {
                 ForEach(Array([snapshot, unplugged, assisting, idle, unavailable].enumerated()), id: \.offset) { _, sample in
                     PowerFlowView(snapshot: sample)

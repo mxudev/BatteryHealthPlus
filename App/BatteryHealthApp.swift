@@ -24,87 +24,123 @@ import ServiceManagement
     }
 }
 
-@MainActor final class AppDelegate: NSObject, NSApplicationDelegate {
+@MainActor final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private lazy var monitor = Monitor()
     private var statusItem: NSStatusItem?
-    private let popover = NSPopover()
+    private let statusMenu = NSMenu(title: "BatteryHealth++")
+    private var menuReadout: NSHostingView<MenuCard>?
+    private var menuOpen = false
     private var subscription: AnyCancellable?
     private var overview: NSWindow?
     private var settings: NSWindow?
     private var openedFromURL = false
-    private var initialPresentation: Task<Void, Never>?
+    private var initialPresentation: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         installMenu()
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.autosaveName = "BatteryHealthStatus"
-        item.button?.target = self
-        item.button?.action = #selector(toggleMenu)
         item.button?.setAccessibilityLabel("BatteryHealth++")
         statusItem = item
+        configureStatusMenu()
+        item.menu = statusMenu
         subscription = monitor.$snapshot.sink { [weak self] sample in
-            guard let button = self?.statusItem?.button else { return }
-            let image = NSImage(systemSymbolName: sample.kind == .desktop ? "bolt" : "battery.75percent", accessibilityDescription: "BatteryHealth++")
-            image?.isTemplate = true
-            button.image = image
-            button.imagePosition = .imageLeading
-            button.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
-            button.title = " " + (sample.batteryPresent ? "\(Display.decimal(sample.chargePercent, digits: 0))%" : "\(Display.decimal(sample.device?.watts)) W")
-            button.toolTip = "BatteryHealth++ · \(sample.status)"
+            self?.updateStatusItem(sample)
+            self?.updateMenuReadout(sample)
         }
-        popover.behavior = .transient
-        popover.animates = false
-        popover.contentViewController = NSHostingController(rootView: MenuPanel(monitor: monitor,
-            onOpen: { [weak self] in self?.showOverview() }, onFloat: { [weak self] in self?.showFloating() },
-            onSettings: { [weak self] in self?.showSettings() }))
-        // Launch Services and the status bar finish installing/activating asynchronously.
-        // Present after that transition, otherwise a transient popover can dismiss at launch.
-        initialPresentation = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(300))
-            guard let self, !self.openedFromURL, !Task.isCancelled else { return }
-            self.showMenu()
-        }
+        // Wait for the status item to enter the menu bar before opening its native menu.
+        // No application activation or key window is needed.
+        if !openedFromURL { scheduleMenuPresentation(after: 0.3) }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        initialPresentation?.cancel()
-        showMenu()
+        scheduleMenuPresentation()
         return false
     }
     func application(_ application: NSApplication, open urls: [URL]) {
         guard urls.contains(where: { $0.scheme == "batteryhealthplus" && $0.host == "overview" }) else { return }
         openedFromURL = true
-        initialPresentation?.cancel()
+        initialPresentation?.invalidate()
         showOverview()
     }
 
-    @objc private func toggleMenu() {
-        if popover.isShown { popover.performClose(nil) } else { showMenu() }
+    private func scheduleMenuPresentation(after delay: TimeInterval = 0.01) {
+        initialPresentation?.invalidate()
+        guard !menuOpen else { return }
+        // NSMenu tracks synchronously. Enter it from a run-loop timer, not a
+        // Swift Task / dispatch block or an open-application event handler, so
+        // main-queue sampling and Launch Services replies continue to run.
+        let timer = Timer(timeInterval: delay, target: self, selector: #selector(showMenu), userInfo: nil, repeats: false)
+        initialPresentation = timer
+        RunLoop.main.add(timer, forMode: .default)
     }
-    private func showMenu() {
+
+    @objc private func showMenu() {
+        guard !menuOpen else { return }
+        // With a menu assigned, the native status button owns tracking and focus.
+        statusItem?.button?.performClick(nil)
+    }
+
+    private func configureStatusMenu() {
+        statusMenu.delegate = self
+        statusMenu.autoenablesItems = false
+        let readout = NSMenuItem(title: "Battery and power readings", action: nil, keyEquivalent: "")
+        let view = NSHostingView(rootView: MenuCard(snapshot: monitor.snapshot))
+        view.setFrameSize(view.fittingSize)
+        readout.view = view
+        readout.isEnabled = false
+        menuReadout = view
+        statusMenu.addItem(readout)
+        statusMenu.addItem(.separator())
+        addCommands(to: statusMenu)
+    }
+
+    private func updateStatusItem(_ sample: PowerSnapshot) {
         guard let button = statusItem?.button else { return }
-        NSApp.activate(ignoringOtherApps: true)
-        // Position using the final SwiftUI size. Otherwise NSPopover uses its
-        // default 320pt height, then grows upward after presentation and clips
-        // the header behind the menu bar.
-        if let view = popover.contentViewController?.view {
-            view.layoutSubtreeIfNeeded()
-            popover.contentSize = view.fittingSize
+        if sample.kind == .desktop {
+            button.image = NSImage(systemSymbolName: "bolt", accessibilityDescription: nil)
+            button.image?.isTemplate = true
+            button.imagePosition = .imageLeading
+            button.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
+            button.title = " " + Display.watts(sample.device)
+            button.setAccessibilityValue("System draw, \(Display.watts(sample.device))")
+        } else {
+            button.image = StatusIcon.battery(percent: sample.chargePercent, charging: sample.charging == true)
+            button.imagePosition = .imageOnly
+            button.title = ""
+            button.setAccessibilityValue("\(Display.decimal(sample.chargePercent, digits: 0)) percent, \(sample.status)")
         }
-        // AppKit interprets the edge in the button's coordinate system. A flipped
-        // status button's lower edge is maxY, not minY.
-        let bounds = button.bounds
-        let anchor = NSRect(x: bounds.minX, y: button.isFlipped ? bounds.maxY - 1 : bounds.minY,
-                            width: bounds.width, height: 1)
-        popover.show(relativeTo: anchor, of: button, preferredEdge: button.isFlipped ? .maxY : .minY)
-        if let window = popover.contentViewController?.view.window {
-            window.makeKey()
-            monitor.viewOpened(in: window)
-        }
+        button.toolTip = sample.kind == .desktop ? "BatteryHealth++ · \(Display.watts(sample.device))" :
+            "BatteryHealth++ · \(Display.decimal(sample.chargePercent, digits: 0))% · \(sample.status)"
     }
+
+    private func updateMenuReadout(_ sample: PowerSnapshot) {
+        guard let view = menuReadout else { return }
+        view.rootView = MenuCard(snapshot: sample)
+        view.layoutSubtreeIfNeeded()
+        // NSMenuItem uses the view's explicit frame and repositions itself when
+        // its size changes. Never manipulate the menu's AppKit-owned window.
+        let size = view.fittingSize
+        if view.frame.size != size { view.setFrameSize(size) }
+    }
+
+    func menuWillOpen(_ menu: NSMenu) {
+        guard menu === statusMenu else { return }
+        menuOpen = true
+        initialPresentation?.invalidate()
+        updateMenuReadout(monitor.snapshot)
+        monitor.setMenuVisible(true)
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        guard menu === statusMenu else { return }
+        menuOpen = false
+        monitor.setMenuVisible(false)
+    }
+
     @objc private func showOverview() {
-        popover.performClose(nil)
+        statusMenu.cancelTracking()
         if overview == nil {
             let size = DashboardView.minimumContentSize
             let window = makeWindow(title: "BatteryHealth++", size: size, resizable: true)
@@ -124,11 +160,11 @@ import ServiceManagement
         if let overview { monitor.viewOpened(in: overview) }
     }
     @objc private func showFloating() {
-        popover.performClose(nil)
+        statusMenu.cancelTracking()
         FloatingPanel.shared.show(monitor: monitor)
     }
     @objc private func showSettings() {
-        popover.performClose(nil)
+        statusMenu.cancelTracking()
         if settings == nil {
             let window = makeWindow(title: "Settings", size: NSSize(width: 360, height: 140))
             window.contentView = NSHostingView(rootView: SettingsView().padding(20).frame(width: 360))
@@ -138,8 +174,8 @@ import ServiceManagement
         NSApp.activate(ignoringOtherApps: true)
     }
     @objc private func closeSurface() {
-        if popover.isShown { popover.performClose(nil) }
-        else if let window = NSApp.keyWindow, window === overview || window === settings || window is LivePanel {
+        statusMenu.cancelTracking()
+        if let window = NSApp.keyWindow, window === overview || window === settings || window is LivePanel {
             window.performClose(nil)
         }
     }
@@ -157,16 +193,7 @@ import ServiceManagement
         let main = NSMenu()
         let appItem = NSMenuItem()
         let menu = NSMenu(title: "BatteryHealth++")
-        for (title, action, key) in [("Open Window", #selector(showOverview), "o"),
-                                     ("Float", #selector(showFloating), "f"),
-                                     ("Settings…", #selector(showSettings), ",")] {
-            let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
-            item.target = self
-            if title == "Float" { item.keyEquivalentModifierMask = [.command, .shift] }
-            menu.addItem(item)
-        }
-        menu.addItem(.separator())
-        menu.addItem(withTitle: "Quit BatteryHealth++", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        addCommands(to: menu)
         appItem.submenu = menu
         main.addItem(appItem)
         let windowItem = NSMenuItem()
@@ -178,6 +205,20 @@ import ServiceManagement
         main.addItem(windowItem)
         NSApp.mainMenu = main
     }
+    private func addCommands(to menu: NSMenu) {
+        for (title, action, key) in [("Open Window", #selector(showOverview), "o"),
+                                     ("Float", #selector(showFloating), "f"),
+                                     ("Settings…", #selector(showSettings), ",")] {
+            let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
+            item.target = self
+            if title == "Float" { item.keyEquivalentModifierMask = [.command, .shift] }
+            menu.addItem(item)
+        }
+        menu.addItem(.separator())
+        let quit = menu.addItem(withTitle: "Quit BatteryHealth++", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        quit.target = NSApp
+    }
+
 }
 
 private struct OverviewContent: View {
@@ -188,61 +229,18 @@ private struct OverviewContent: View {
     }
 }
 
-struct MenuPanel: View {
-    @ObservedObject var monitor: Monitor
-    var onOpen: () -> Void
-    var onFloat: () -> Void
-    var onSettings: () -> Void
-    var body: some View {
-        MenuCard(snapshot: monitor.snapshot, onOpen: onOpen, onFloat: onFloat, onSettings: onSettings)
-    }
-}
-
+/// Read-only content inside a native NSMenuItem; commands are regular NSMenuItems.
 struct MenuCard: View {
     let snapshot: PowerSnapshot
-    var onOpen: () -> Void = {}
-    var onFloat: () -> Void = {}
-    var onSettings: () -> Void = {}
     var body: some View {
-        VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Text("BatteryHealth++").font(.system(size: 12, weight: .semibold))
-                    Spacer()
-                    Text(snapshot.isStale() ? "Waiting" : "Live").font(.system(size: 10)).foregroundStyle(.secondary)
-                }
-                TelemetryReadout(snapshot: snapshot)
-            }.padding(10)
-            Divider().padding(.horizontal, 7)
-            VStack(spacing: 0) {
-                MenuAction(title: "Open Window", symbol: "macwindow", shortcut: "⌘O", action: onOpen)
-                MenuAction(title: "Float", symbol: "pip", shortcut: "⇧⌘F", action: onFloat)
-                MenuAction(title: "Settings…", symbol: "slider.horizontal.3", shortcut: "⌘,", action: onSettings)
-                Divider().padding(.vertical, 3)
-                MenuAction(title: "Quit", symbol: "power", shortcut: "⌘Q") { NSApp.terminate(nil) }
-            }.padding(5)
-        }.frame(width: 260).fixedSize(horizontal: false, vertical: true)
-    }
-}
-
-private struct MenuAction: View {
-    var title: String
-    var symbol: String
-    var shortcut: String
-    var action: () -> Void
-    @State private var hovering = false
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 9) {
-                Image(systemName: symbol).font(.system(size: 11)).frame(width: 14)
-                Text(title)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("BatteryHealth++").font(.system(size: 12, weight: .semibold))
                 Spacer()
-                Text(shortcut).foregroundStyle(hovering ? Color.white.opacity(0.7) : Color.secondary)
-            }.font(.system(size: 13)).padding(.horizontal, 8).frame(height: 24)
-                .foregroundStyle(hovering ? Color.white : Color.primary)
-                .background(hovering ? Color(nsColor: .selectedContentBackgroundColor) : .clear, in: RoundedRectangle(cornerRadius: 4))
-                .contentShape(Rectangle())
-        }.buttonStyle(.plain).onHover { hovering = $0 }
+                Text(snapshot.isStale() ? "Waiting" : "Live").font(.system(size: 10)).foregroundStyle(.secondary)
+            }
+            TelemetryReadout(snapshot: snapshot)
+        }.padding(12).frame(width: 260).fixedSize(horizontal: false, vertical: true)
     }
 }
 
