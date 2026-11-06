@@ -4,7 +4,8 @@ import Foundation
 public enum TelemetryParser {
     public static func parse(root: [String: Any], pack: [String: Any] = [:],
                              publicSource: [String: Any] = [:], model: String,
-                             boardPower: Double? = nil, hasClamshell: Bool = false, date: Date = Date()) -> PowerSnapshot {
+                             boardPower: Double? = nil, inputPower: Double? = nil,
+                             hasClamshell: Bool = false, date: Date = Date()) -> PowerSnapshot {
         var s = PowerSnapshot()
         s.date = date; s.model = model
         let data = root["BatteryData"] as? [String: Any] ?? [:]
@@ -27,6 +28,10 @@ public enum TelemetryParser {
             s.externalPower = state == "AC Power"
         }
         s.charging = root["IsCharging"] as? Bool ?? publicSource["Is Charging"] as? Bool
+        if s.externalPower == false { s.charging = false }
+        if let updated = finite(root["UserVisiblePathUpdated"]), updated > 0 {
+            s.batterySampleDate = Date(timeIntervalSince1970: updated)
+        }
         if s.batteryPresent {
             let current = finite(publicSource["Current Capacity"]) ?? finite(root["CurrentCapacity"])
             let max = finite(publicSource["Max Capacity"]) ?? finite(root["MaxCapacity"])
@@ -68,24 +73,79 @@ public enum TelemetryParser {
         s.device = power("SystemLoad")
         if s.batteryPresent {
             let electrical = s.voltage.flatMap { voltage in s.currentAmps.map { voltage * $0 } }
-            if let reading = power("BatteryPower", signedValue: true),
+            let measuredBattery = power("BatteryPower", signedValue: true)
+            // These three values come from the same telemetry dictionary. A
+            // coherent charging split is stronger evidence than a separately
+            // cached battery current, which can still describe discharge.
+            let coherentCharging: Bool
+            if s.externalPower == true, let input = s.input, let device = s.device,
+               let battery = measuredBattery, input.watts > 0.5, battery.watts > 0.5 {
+                coherentCharging = abs(input.watts - device.watts - battery.watts) <= max(1, input.watts * 0.05)
+            } else {
+                coherentCharging = false
+            }
+            if coherentCharging {
+                s.battery = measuredBattery
+                s.charging = true
+                if (electrical ?? 0) < -0.5 { s.currentAmps = nil }
+            } else if let reading = measuredBattery,
                // Reject stale charging telemetry after unplugging or when current reverses.
                !(s.externalPower == false && reading.watts > 0),
                !(reading.watts > 0 && (electrical ?? 0) < -0.5),
                !(reading.watts < 0 && (electrical ?? 0) > 0.5),
                !(reading.watts == 0 && s.externalPower == false && (electrical ?? 0) < -0.5) {
                 s.battery = reading
-            } else if let electrical, electrical.isFinite, abs(electrical) < 2000 {
+            } else if let electrical, electrical.isFinite, abs(electrical) < 2000,
+                      !(s.externalPower == false && electrical > 0) {
                 s.battery = .init(electrical, source: "Battery voltage × signed current", estimated: true)
             }
-        }
-        if s.device == nil, let boardPower, boardPower.isFinite, (0...2000).contains(boardPower) {
-            s.device = .init(boardPower, source: "AppleSMC.PSTR")
+            // A confirmed charging flag must not be paired with a stale reverse
+            // arrow. Leave the direction unknown until a measurement catches up.
+            if s.charging == true && (s.battery?.watts ?? 0) < -0.5 {
+                s.battery = nil
+                s.currentAmps = nil
+                s.powerFlowSettling = true
+                if s.input?.watts == 0 { s.input = nil }
+            }
+            if s.externalPower == false && (s.currentAmps ?? 0) > 0 { s.currentAmps = nil }
         }
         if s.device == nil, let input = s.input, let battery = s.battery {
             let difference = input.watts - battery.watts
             if difference >= 0, difference < 2000 {
                 s.device = .init(difference, source: "Input − battery (includes conversion losses)", estimated: true)
+            }
+        }
+        // Apply direct sensors after the registry fallback has been parsed. Never
+        // calculate a new split by mixing a direct value with a cached value.
+        let directDevice = boardPower.flatMap { $0.isFinite && (0...2000).contains($0) ? $0 : nil }
+        let directInput = inputPower.flatMap { $0.isFinite && (0...2000).contains($0) ? $0 : nil }
+        if let directDevice { s.device = .init(directDevice, source: "AppleSMC.PSTR") }
+        if s.batteryPresent, let directInput {
+            s.input = .init(directInput, source: "AppleSMC.PDTR")
+            // Positive measured input can arrive before the connection flag.
+            if directInput > 0.5 {
+                if s.externalPower != true { s.minutesRemaining = nil }
+                s.externalPower = true
+                s.adapterRatingWatts = positive(finite(adapter["Watts"]))
+            }
+            if let directDevice {
+                let difference = directInput - directDevice
+                // Separate reads have small timing/noise differences around zero.
+                let batteryPower = abs(difference) <= 0.5 ? 0 : difference
+                s.battery = .init(batteryPower, source: "AppleSMC.PDTR − PSTR (estimated net battery power)", estimated: true)
+                s.hasDirectPowerFlow = true
+                s.powerFlowSettling = false
+                let charging = batteryPower > 0.5
+                if s.charging != charging { s.minutesRemaining = nil }
+                s.charging = charging
+                // Keep health metadata from the registry, but don't display
+                // cached current pointing against the direct power flow.
+                if let current = s.currentAmps,
+                   (batteryPower > 0.5 && current < 0) ||
+                   (batteryPower < -0.5 && current > 0) ||
+                   (batteryPower == 0 && abs(current) > 0.1) {
+                    s.currentAmps = nil
+                }
             }
         }
         if s.device == nil { s.notes.append("This Mac is not exposing a supported system power sensor.") }

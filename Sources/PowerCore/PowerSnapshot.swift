@@ -39,6 +39,11 @@ public struct PowerSnapshot: Codable, Equatable, Sendable {
     public var device: PowerReading?
     /// Positive = into the battery. Negative = battery supplying the Mac.
     public var battery: PowerReading?
+    /// Driver timestamp, distinct from when the app read the cached registry values.
+    public var batterySampleDate: Date?
+    public var powerFlowSettling = false
+    /// Both input and load were read directly from SMC in this sample.
+    public var hasDirectPowerFlow = false
     public var notes: [String] = []
 
     public init() {}
@@ -53,6 +58,7 @@ public struct PowerSnapshot: Codable, Equatable, Sendable {
         if kind == .desktop { return "Desktop power" }
         guard batteryPresent else { return "Waiting for battery data" }
         if charging == true { return "Charging" }
+        if powerFlowSettling { return "Power updating" }
         if externalPower == true {
             if let watts = battery?.watts, watts < -0.5 { return "Battery assisting" }
             return (chargePercent ?? 0) >= 99 ? "Fully charged" : "Charging paused"

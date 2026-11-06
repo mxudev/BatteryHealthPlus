@@ -25,7 +25,7 @@ enum Display {
     static func capacity(_ value: Double?) -> String { decimal(value, digits: 0) }
     static func watts(_ reading: PowerReading?, magnitude: Bool = false) -> String {
         guard let reading else { return "—" }
-        return (reading.estimated ? "≈" : "") + decimal(magnitude ? abs(reading.watts) : reading.watts) + " W"
+        return decimal(magnitude ? abs(reading.watts) : reading.watts) + " W"
     }
     static func duration(_ minutes: Int?) -> String {
         guard let minutes else { return "Estimating time" }
@@ -75,10 +75,9 @@ struct WattValue: View {
     var value: Double?
     var size: CGFloat = 24
     var color: Color = .primary
-    var estimated = false
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 3) {
-            Text((estimated && value != nil ? "≈" : "") + Display.decimal(value))
+            Text(Display.decimal(value))
                 .font(.system(size: size, weight: .medium)).monospacedDigit()
             Text("W").font(.system(size: 11)).foregroundStyle(.secondary)
         }.foregroundStyle(color)

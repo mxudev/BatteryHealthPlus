@@ -27,6 +27,10 @@ import SwiftUI
         idle.charging = false; idle.input = idle.device; idle.battery = .init(0, source: "Preview")
         var unavailable = snapshot
         unavailable.input = nil; unavailable.device = nil; unavailable.battery = nil
+        var connecting = snapshot
+        connecting.charging = false; connecting.powerFlowSettling = true
+        connecting.input = nil; connecting.battery = nil; connecting.currentAmps = nil
+        connecting.minutesRemaining = nil
         for scheme in [ColorScheme.light, .dark] {
             let suffix = scheme == .dark ? "dark" : "light"
             func save<V: View>(_ view: V, name: String) {
@@ -34,6 +38,7 @@ import SwiftUI
             }
             save(MenuCard(snapshot: snapshot).background(Palette.background)
                 .clipShape(RoundedRectangle(cornerRadius: 10)), name: "menu")
+            save(MenuCard(snapshot: connecting).background(Palette.background), name: "menu-connecting")
             save(VStack(alignment: .leading, spacing: 12) {
                 ForEach([0, 5, 50, 99, 100], id: \.self) { percent in
                     HStack(spacing: 16) {

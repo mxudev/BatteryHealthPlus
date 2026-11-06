@@ -65,6 +65,12 @@
 			"path" = "Sources/PowerCore/PowerSnapshot.swift";
 			"sourceTree" = "SOURCE_ROOT";
 		};
+		"777A3E24E42B087BBC0FFC30" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.swift";
+			"path" = "Sources/PowerCore/PowerTransitionFilter.swift";
+			"sourceTree" = "SOURCE_ROOT";
+		};
 		"A90ACFD70EE2F519F84BD19B" = {
 			"isa" = "PBXFileReference";
 			"lastKnownFileType" = "sourcecode.swift";
@@ -111,6 +117,7 @@
 				"26CAFA27D1AAB373FF2A0FC7",
 				"04B87BF38A498454BB819EA9",
 				"5094ACEC4240010A161C2EBD",
+				"777A3E24E42B087BBC0FFC30",
 				"A90ACFD70EE2F519F84BD19B",
 				"C683D9AC099129EE5F173AEA",
 				"3685E330EC5277A9DD5661C6",
@@ -158,6 +165,10 @@
 			"isa" = "PBXBuildFile";
 			"fileRef" = "5094ACEC4240010A161C2EBD";
 		};
+		"D5BFFBBE3BAB4D796B03E563" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "777A3E24E42B087BBC0FFC30";
+		};
 		"6ECB8AC817A9C0CF64CF4F6E" = {
 			"isa" = "PBXBuildFile";
 			"fileRef" = "A90ACFD70EE2F519F84BD19B";
@@ -180,6 +191,7 @@
 				"F21E22082E6B711C0235C6F9",
 				"CBBC62325FA5BE17D242A3F7",
 				"DA117FF9EBF4D932473ABD68",
+				"D5BFFBBE3BAB4D796B03E563",
 				"6ECB8AC817A9C0CF64CF4F6E",
 				"650AB958F31F94910AA920CE",
 			);

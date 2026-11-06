@@ -21,11 +21,14 @@ public enum PowerReader {
                 }
             }
         }
-        let telemetry = root["PowerTelemetryData"] as? [String: Any]
-        let board = includeSMC && telemetry?["SystemLoad"] == nil ? SMCReader().systemPower() : nil
+        // Read adjacent keys through one connection on every sample. Registry
+        // values can remain cached for many app refreshes after plugging in.
+        let smc = includeSMC ? SMCReader() : nil
+        let input = smc?.read("PDTR")
+        let board = smc?.systemPower()
         let hasClamshell = properties(className: "IOPMrootDomain")["AppleClamshellState"] != nil
         return TelemetryParser.parse(root: root, pack: pack, publicSource: source, model: hardwareModel,
-                                     boardPower: board, hasClamshell: hasClamshell)
+                                     boardPower: board, inputPower: input, hasClamshell: hasClamshell)
         #endif
     }
 

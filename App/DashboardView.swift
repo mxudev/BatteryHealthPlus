@@ -41,7 +41,7 @@ struct DashboardView: View {
                 }
                 ChargeLine(percent: snapshot.chargePercent)
             } else {
-                WattValue(value: snapshot.device?.watts, size: 36, estimated: snapshot.device?.estimated ?? false)
+                WattValue(value: snapshot.device?.watts, size: 36)
                 Text("System draw").font(.system(size: 11)).foregroundStyle(.secondary)
             }
             Divider()
@@ -150,7 +150,7 @@ struct SourcesView: View {
                 }
             }
             Divider()
-            Text("≈ indicates a calculated estimate. Sensors sample at different times, so readings may not add up exactly. Positive battery power means charging; negative means discharging.")
+            Text("Battery power is estimated from charger input minus device power when direct sensors are available. Other calculated readings are identified by their source. Sensor timing and conversion losses can affect the split. Positive battery power means charging; negative means discharging.")
             Text("Health is full-charge capacity ÷ design capacity. It can differ from System Settings. The app shows live readings.")
             ForEach(snapshot.notes, id: \.self) { Text($0).foregroundStyle(Palette.amber) }
             HStack { Spacer(); Button("Done") { dismiss() }.keyboardShortcut(.defaultAction).controlSize(.small) }

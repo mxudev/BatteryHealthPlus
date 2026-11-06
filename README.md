@@ -14,7 +14,7 @@ A quiet, native battery and power monitor for **Apple Silicon Macs running macOS
 - Explicit **Open Window** and **Float** actions for the detailed overview and draggable floating readout.
 - Light and dark appearances that follow macOS, including the dropdown, windows, and floating panel.
 - Battery health, current charge, full-charge and original capacity in mAh, cycle count, temperature, and estimated charging / battery time when available.
-- Actual charger input, device load, and signed battery power. Advertised charger wattage is labeled separately as the connection’s capability.
+- Direct SMC charger input and device load, with an estimated battery split. Registry telemetry is the fallback. Advertised charger wattage is labeled separately as the connection’s capability.
 - A ten-minute in-memory power chart. History begins when the app opens; no invented points or persisted usage log.
 - Automatic power-only presentation on desktop Macs, using the AppleSMC `PSTR` sensor when available.
 - Optional launch at login, enabled explicitly in Settings.
@@ -56,12 +56,12 @@ For distribution, select your signing team and choose a unique bundle identifier
 | --- | --- |
 | Health | Full-charge capacity ÷ design capacity; can differ from System Settings’ estimate. The numerical percentage retains values over 100%. |
 | From charger | Measured DC power entering the Mac, not the adapter’s maximum rating or wall-socket consumption. |
-| Mac | System-load telemetry; on desktop Macs, the supported SMC system-power sensor. |
-| Battery in / out | Positive telemetry charges the battery; negative telemetry supplies the Mac. The interface labels the direction explicitly. |
-| ≈ | Calculated from voltage × current or input − battery. A subtraction estimate includes conversion losses. |
+| Mac | Direct SMC system power (`PSTR`), with registry system-load telemetry as fallback. |
+| Battery in / out | Estimated from direct charger input (`PDTR`) minus device power (`PSTR`); otherwise registry battery telemetry. Positive charges the battery; negative supplies the Mac. |
+| Calculated readings | Shown without a symbol; “Readings & sources” explains the calculation. Subtraction estimates can include conversion losses and sensor timing differences. |
 | — | Unavailable. Missing sensor data is never fabricated. |
 
-Independent sensors can sample at different times, so input, load, and battery power need not sum exactly. Apple’s hardware may update its registers less frequently than the app reads them. This app does not measure a wall socket.
+Direct SMC power is sampled approximately every second while a live view is visible. It bypasses the slower battery registry cache; health, capacity, current, and time estimates still come from the registry. A complete direct power pair is never delayed waiting for that cache. Independent sensors can sample at different times; estimated battery power within ±0.5 W is treated as idle to avoid flickering direction near zero. This app does not measure a wall socket.
 
 ## Verify and inspect
 
@@ -71,7 +71,7 @@ swift run power-probe
 swift run power-probe --smc
 ```
 
-The probe prints selected readings and their provenance, without battery serial numbers. `--smc` additionally probes `PSTR`, `PDTR`, and `PPBR`; only `PSTR` is used as a system-load fallback. The latter two probes are exploratory and their meanings are not assumed to be portable across models.
+The probe prints selected readings and their provenance, without battery serial numbers. `PSTR` and `PDTR` are the primary power sources. `--smc` additionally prints individual key readings, including the exploratory `PPBR` key, which is not used for the app’s battery power calculation.
 
 To check the signed app’s sensors:
 

@@ -23,7 +23,7 @@ struct TelemetryReadout: View {
                 ChargeLine(percent: snapshot.chargePercent)
             } else {
                 HStack(alignment: .firstTextBaseline) {
-                    WattValue(value: snapshot.device?.watts, size: 30, estimated: snapshot.device?.estimated ?? false)
+                    WattValue(value: snapshot.device?.watts, size: 30)
                     Spacer()
                     Text("System draw").font(.system(size: 11)).foregroundStyle(.secondary)
                 }

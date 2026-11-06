@@ -13,6 +13,7 @@ import SwiftUI
     private var sleeping = false
     private var isRefreshing = false
     private var refreshPending = false
+    private var transitionFilter = PowerTransitionFilter()
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
 
     init() {
@@ -107,8 +108,9 @@ import SwiftUI
         isRefreshing = true
         repeat {
             refreshPending = false
-            let sample = await Task.detached(priority: .utility) { PowerReader.read() }.value
+            let reading = await Task.detached(priority: .utility) { PowerReader.read() }.value
             guard !sleeping else { break }
+            let sample = transitionFilter.process(reading)
             snapshot = sample
             history.append(PowerPoint(sample))
             history.removeAll { $0.date < sample.date.addingTimeInterval(-600) }

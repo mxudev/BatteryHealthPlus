@@ -1,6 +1,6 @@
 # Battery and power API research
 
-Investigated on 4 November 2026. The implementation reads values; it does not change power policy, battery limits, fan controls, or SMC registers.
+Investigated on 4 November 2026; direct SMC sampling validated on 6 November 2026. The implementation reads values; it does not change power policy, battery limits, fan controls, or SMC registers.
 
 ## Public interfaces
 
@@ -26,18 +26,28 @@ The reader probes `AppleSmartBattery`, plus `AppleSmartBatteryPack` for the newe
 | `Voltage`, `InstantAmperage` / `Amperage` | mV and signed mA; multiply and divide by 1,000,000 for watts. |
 | `PowerTelemetryData.SystemPowerIn` | DC input power in mW. Only accepted when an external source is connected. |
 | `PowerTelemetryData.SystemLoad` | Device-load power in mW. |
-| `PowerTelemetryData.BatteryPower` | Signed battery power in mW. Charging values inconsistent with disconnect state / current direction are rejected. |
+| `PowerTelemetryData.BatteryPower` | Signed battery power in mW. A coherent charging input/load/battery split takes precedence over separately cached current. Otherwise inconsistent direction falls back to electrical measurements. |
 | `AdapterDetails.Watts` | Connection capability in watts, **not measured consumption**. |
 
 IORegistry can encode negative signed integers as unsigned two’s-complement values. Both 64-bit and older 32-bit representations are decoded. `65535`, non-positive or implausibly long time estimates are omitted. Invalid, missing, and non-finite values remain absent. A real zero-current reading is retained.
 
+### Connection transitions
+
+Reading the registry again does not force a hardware update. Apple's [battery driver source](https://github.com/apple-oss-distributions/PowerManagement/blob/main/AppleSmartBatteryManager/AppleSmartBattery.cpp) reads current, voltage, and connection state through separate commands. Its timing is an implementation detail, not a guaranteed one-second sensor cadence.
+
+When a complete direct SMC power pair is available, it bypasses the cache transition filter immediately, including idle and battery-assisting states. For the registry fallback, the app tracks power-source changes separately from its polling timestamp. Until the driver advances `UserVisiblePathUpdated`, electrical readings change on drivers without that timestamp, or a charging split becomes available, it suppresses the previous source's battery direction/current and a zero charger reading. The status says “Power updating” (or “Charging” if confirmed). Measured device load remains visible; calculations based on the stale battery reading do not enter history. The wait is capped at 90 seconds so an adapter that really provides no power is not hidden indefinitely. It also handles launching during an apparent connection transition and rapid unplugging.
+
+A positive charging split is considered coherent when input minus load agrees with battery power within 1 W or 5% of input, whichever is greater. That heuristic avoids discarding charging telemetry solely because cached current is still negative; contradictory current is omitted. Incomplete telemetry still uses the conservative electrical fallback, and fresh discharge readings can still report a battery assisting a weak charger. Synthetic transition sequences are regression-tested; a physical cable reconnection is needed to confirm behavior on each hardware/OS combination.
+
 The developer of [Stats’ battery reader](https://github.com/exelban/stats/blob/master/Modules/Battery/readers.swift) demonstrates the registry/public-source combination and fallback capacity fields. A [published power probe](https://gist.github.com/robzr/2abf9c7e7f576d8af00d90b671489b48) demonstrates that measured input (`SystemPowerIn / 1000`) and advertised adapter wattage differ. These are implementation evidence, not Apple stability guarantees. The field interpretation was also checked against live readings on this Mac.
 
-## Read-only AppleSMC fallback
+## Primary read-only AppleSMC power readings
 
 The host app opens the `AppleSMC` service with `IOServiceOpen` and uses external method 2. The 80-byte ABI is represented by a byte buffer rather than assuming Swift struct layout. It issues only key-metadata (9) and read-bytes (5) commands. No write command exists in the implementation.
 
-`PSTR` is tried for total system power when battery telemetry does not expose `SystemLoad`, including desktop Macs. Supported encodings are little-endian `flt `, signed big-endian `sp78`, and unsigned `fpe2`. Unknown encodings, failed calls, non-finite values, or implausible wattages return unavailable.
+`PDTR` (input) and `PSTR` (system load) are read consecutively through one connection on every sample, taking priority over registry power telemetry. With both available on a portable, battery power is estimated as input minus load; values within ±0.5 W are treated as idle. The pair also determines charging direction so cached current and charging flags cannot reverse the live flow. Positive measured input can establish external power before the registry connection flag catches up. Contradictory cached current/time estimates are omitted. Health and capacity metadata continue using the registry. Desktop Macs use `PSTR` without a battery split. Missing or invalid individual keys retain the corresponding registry fallback; a new split is never calculated from mixed direct and cached readings. Supported encodings are little-endian `flt `, signed big-endian `sp78`, and unsigned `fpe2`. Unknown encodings, failed calls, non-finite values, or implausible wattages return unavailable.
+
+The [Asahi SMC documentation](https://asahilinux.org/docs/hw/soc/smc/) identifies `PDTR` and `PSTR`. In an eight-second local comparison, direct device power varied from 11.1–15.2 W while registry load remained 11.638 W. `PPBR` returned about 0.35 W during substantial battery charging, so it is not used as signed battery power. This validates faster updates on the tested Mac, not a universal firmware sampling rate.
 
 Reference: the [Stats SMC implementation](https://github.com/exelban/stats/blob/master/SMC/smc.swift) and its [sensor definitions](https://github.com/exelban/stats/blob/master/Modules/Sensors/values.swift) describe the private protocol and system-power sensor. The implementation here is a new, restricted reader with explicit byte offsets; it does not include the referenced project’s fan-writing functionality.
 
