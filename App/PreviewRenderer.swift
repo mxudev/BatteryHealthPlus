@@ -31,6 +31,8 @@ import SwiftUI
         connecting.charging = false; connecting.powerFlowSettling = true
         connecting.input = nil; connecting.battery = nil; connecting.currentAmps = nil
         connecting.minutesRemaining = nil
+        var withPhone = snapshot
+        withPhone.phone = PhoneSnapshot.parse(["Status": "Success", "Diagnostics": ["IORegistry": ["CurrentCapacity": 59, "MaxCapacity": 100, "PowerTelemetryData": ["SystemPowerIn": 11130, "SystemLoad": 3137, "BatteryPower": 7993]]]])
         for scheme in [ColorScheme.light, .dark] {
             let suffix = scheme == .dark ? "dark" : "light"
             func save<V: View>(_ view: V, name: String) {
@@ -38,6 +40,9 @@ import SwiftUI
             }
             save(MenuCard(snapshot: snapshot).background(Palette.background)
                 .clipShape(RoundedRectangle(cornerRadius: 10)), name: "menu")
+            save(MenuCard(snapshot: withPhone).background(Palette.background), name: "menu-iphone")
+            save(FloatingCard(snapshot: withPhone), name: "floating-iphone")
+            save(DashboardView(snapshot: withPhone, history: points).frame(width: 520, height: DashboardView.minimumSize(for: withPhone).height), name: "overview-iphone")
             save(MenuCard(snapshot: connecting).background(Palette.background), name: "menu-connecting")
             save(VStack(alignment: .leading, spacing: 12) {
                 ForEach([0, 5, 50, 99, 100], id: \.self) { percent in

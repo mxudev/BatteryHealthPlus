@@ -13,6 +13,9 @@ import SwiftUI
     private var sleeping = false
     private var isRefreshing = false
     private var refreshPending = false
+    private var readingPhone = false
+    private var nextPhoneRead = Date.distantPast
+    private var phone: PhoneSnapshot?
     private var transitionFilter = PowerTransitionFilter()
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
 
@@ -20,6 +23,8 @@ import SwiftUI
         observe(NSWorkspace.willSleepNotification, center: NSWorkspace.shared.notificationCenter) { monitor in
             monitor.sleeping = true
             monitor.timer?.invalidate()
+            monitor.phone = nil
+            monitor.snapshot.phone = nil
         }
         observe(NSWorkspace.didWakeNotification, center: NSWorkspace.shared.notificationCenter) { monitor in
             monitor.sleeping = false
@@ -49,6 +54,7 @@ import SwiftUI
 
     /// Called after presentation, including when a retained window is reopened.
     func viewOpened(in window: NSWindow) {
+        nextPhoneRead = .distantPast
         liveWindows.add(window)
         updateVisibility(refreshOnReveal: false)
         requestRefresh()
@@ -58,7 +64,7 @@ import SwiftUI
     func setMenuVisible(_ visible: Bool) {
         menuVisible = visible
         updateVisibility(refreshOnReveal: false)
-        if visible { requestRefresh() }
+        if visible { nextPhoneRead = .distantPast; requestRefresh() }
     }
 
     private func observe(_ name: Notification.Name, center: NotificationCenter = .default,
@@ -99,6 +105,21 @@ import SwiftUI
         RunLoop.main.add(timer, forMode: .common)
     }
 
+    private func refreshPhoneIfNeeded() {
+        guard hasVisibleLiveView, !readingPhone, Date() >= nextPhoneRead,
+              let executable = Bundle.main.executableURL else { return }
+        readingPhone = true
+        Task { [weak self] in
+            let result = await Task.detached(priority: .utility) { PhoneSampler.read(executable: executable) }.value
+            guard let self else { return }
+            self.readingPhone = false
+            self.nextPhoneRead = Date().addingTimeInterval(5)
+            guard !self.sleeping else { return }
+            self.phone = result
+            self.snapshot.phone = result
+        }
+    }
+
     func refresh() async {
         guard !sleeping else { return }
         // Preserve a power/visibility event arriving during a sensor read, without
@@ -110,7 +131,10 @@ import SwiftUI
             refreshPending = false
             let reading = await Task.detached(priority: .utility) { PowerReader.read() }.value
             guard !sleeping else { break }
-            let sample = transitionFilter.process(reading)
+            if let phone, Date().timeIntervalSince(phone.date) > 15 { self.phone = nil }
+            var sample = transitionFilter.process(reading)
+            sample.phone = phone
+            refreshPhoneIfNeeded()
             snapshot = sample
             history.append(PowerPoint(sample))
             history.removeAll { $0.date < sample.date.addingTimeInterval(-600) }

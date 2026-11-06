@@ -52,6 +52,10 @@ struct TelemetryReadout: View {
             } else if snapshot.device == nil {
                 Text("Power sensor unavailable").font(.system(size: 11)).foregroundStyle(.secondary)
             }
+            if let phone = snapshot.phone {
+                Divider()
+                PhoneReadout(phone: phone)
+            }
         }
     }
 }

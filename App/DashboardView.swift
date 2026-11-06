@@ -4,6 +4,9 @@ import Charts
 struct DashboardView: View {
     // Content dimensions, excluding the native window title bar.
     static let minimumContentSize = NSSize(width: 520, height: 560)
+    static func minimumSize(for snapshot: PowerSnapshot) -> NSSize {
+        NSSize(width: minimumContentSize.width, height: minimumContentSize.height + (snapshot.phone == nil ? 0 : PhoneReadout.height + 30))
+    }
     let snapshot: PowerSnapshot
     let history: [PowerPoint]
     var onFloat: () -> Void = {}
@@ -12,7 +15,7 @@ struct DashboardView: View {
     var body: some View {
         content
             .fixedSize(horizontal: false, vertical: true)
-            .frame(minWidth: Self.minimumContentSize.width, minHeight: Self.minimumContentSize.height,
+            .frame(minWidth: Self.minimumContentSize.width, minHeight: Self.minimumSize(for: snapshot).height,
                    alignment: .topLeading)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(Palette.background)
@@ -62,6 +65,10 @@ struct DashboardView: View {
                         MetricRow(label: "Current", value: "\(Display.decimal(snapshot.currentAmps, digits: 2)) A")
                     }
                 }
+                Divider()
+            }
+            if let phone = snapshot.phone {
+                PhoneReadout(phone: phone)
                 Divider()
             }
             historyView
@@ -152,6 +159,9 @@ struct SourcesView: View {
             Divider()
             Text("Battery power is estimated from charger input minus device power when direct sensors are available. Other calculated readings are identified by their source. Sensor timing and conversion losses can affect the split. Positive battery power means charging; negative means discharging.")
             Text("Health is full-charge capacity ÷ design capacity. It can differ from System Settings. The app shows live readings.")
+            if snapshot.phone != nil {
+                Text("iPhone readings come from its own power telemetry over a trusted USB connection. Input measures power received by the phone, excluding cable losses. A powered hub may supply it independently of the Mac. Phone telemetry has its own update cadence.")
+            }
             ForEach(snapshot.notes, id: \.self) { Text($0).foregroundStyle(Palette.amber) }
             HStack { Spacer(); Button("Done") { dismiss() }.keyboardShortcut(.defaultAction).controlSize(.small) }
         }.font(.system(size: 11)).foregroundStyle(.secondary).padding(20).frame(width: 400)

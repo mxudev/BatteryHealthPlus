@@ -17,6 +17,7 @@ A quiet, native battery and power monitor for **Apple Silicon Macs running macOS
 - Direct SMC charger input and device load, with an estimated battery split. Registry telemetry is the fallback. Advertised charger wattage is labeled separately as the connection’s capability.
 - A ten-minute in-memory power chart. History begins when the app opens; no invented points or persisted usage log.
 - Automatic power-only presentation on desktop Macs, using the AppleSMC `PSTR` sensor when available.
+- A compact iPhone section showing phone-reported input, device load, battery power, and charge percentage over an existing trusted USB data connection. Data hubs are supported by the transport; powered hubs may supply the phone independently of the Mac.
 - Optional launch at login, enabled explicitly in Settings.
 
 The images above preview the readout; Open Window, Float, Settings, and Quit are native macOS menu items beneath it. The images in `Docs/Previews` use **design fixtures**, not this Mac’s measurements. Live views always use hardware data. `--render-previews` is the only runtime entry point for design fixtures.
@@ -63,6 +64,8 @@ For distribution, select your signing team and choose a unique bundle identifier
 
 Direct SMC power is sampled approximately every second while a live view is visible. It bypasses the slower battery registry cache; health, capacity, current, and time estimates still come from the registry. A complete direct power pair is never delayed waiting for that cache. Independent sensors can sample at different times; estimated battery power within ±0.5 W is treated as idle to avoid flickering direction near zero. This app does not measure a wall socket.
 
+The iPhone section appears for the first detected USB iPhone, with readings requested about every five seconds while a live view is visible. Unlock the phone and trust the Mac in Finder first. No phone app, jailbreak, or developer mode is required by the tested diagnostics route. Charging-only cables/ports cannot carry these readings. Missing measurements stay blank; the negotiated USB limit is never shown as actual draw. Disconnection or a failed read clears previous readings. The iPhone is shown separately from the Mac’s split to avoid double counting or attributing a powered hub’s supply to the Mac.
+
 ## Verify and inspect
 
 ```sh
@@ -77,6 +80,12 @@ To check the signed app’s sensors:
 
 ```sh
 'build/DerivedData/Build/Products/Release/BatteryHealth++.app/Contents/MacOS/BatteryHealth++' --diagnose
+```
+
+To test the same isolated phone reader used by the app (outputs only selected power/charge readings):
+
+```sh
+'build/DerivedData/Build/Products/Release/BatteryHealth++.app/Contents/MacOS/BatteryHealth++' --diagnose-iphone
 ```
 
 To regenerate the design previews:

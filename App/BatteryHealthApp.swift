@@ -6,6 +6,18 @@ import ServiceManagement
 /// AppKit owns presentation: launching/restoring never creates an overview window.
 @main @MainActor enum BatteryHealthApp {
     static func main() {
+        if CommandLine.arguments.contains("--diagnose-iphone"), let executable = Bundle.main.executableURL {
+            if let phone = PhoneSampler.read(executable: executable), let data = try? JSONEncoder().encode(phone) {
+                FileHandle.standardOutput.write(data)
+            }
+            return
+        }
+        if CommandLine.arguments.contains("--read-iphone") {
+            if let phone = PhoneReader.read(), let data = try? JSONEncoder().encode(phone) {
+                FileHandle.standardOutput.write(data)
+            }
+            return
+        }
         let application = NSApplication.shared
         if CommandLine.arguments.contains("--diagnose") {
             let sample = PowerReader.read()
@@ -47,6 +59,7 @@ import ServiceManagement
         subscription = monitor.$snapshot.sink { [weak self] sample in
             self?.updateStatusItem(sample)
             self?.updateMenuReadout(sample)
+            self?.updateWindowSizes(sample)
         }
         // Wait for the status item to enter the menu bar before opening its native menu.
         // No application activation or key window is needed.
@@ -139,10 +152,22 @@ import ServiceManagement
         monitor.setMenuVisible(false)
     }
 
+    private func updateWindowSizes(_ sample: PowerSnapshot) {
+        if let overview {
+            let minimum = DashboardView.minimumSize(for: sample)
+            overview.contentMinSize = minimum
+            let current = overview.contentLayoutRect.size
+            if current.height < minimum.height {
+                overview.setContentSize(NSSize(width: max(current.width, minimum.width), height: minimum.height))
+            }
+        }
+        DispatchQueue.main.async { FloatingPanel.shared.resizeToFit() }
+    }
+
     @objc private func showOverview() {
         statusMenu.cancelTracking()
         if overview == nil {
-            let size = DashboardView.minimumContentSize
+            let size = DashboardView.minimumSize(for: monitor.snapshot)
             let window = makeWindow(title: "BatteryHealth++", size: size, resizable: true)
             window.contentView = NSHostingView(rootView: OverviewContent(monitor: monitor, onFloat: { [weak self] in self?.showFloating() }))
             window.contentMinSize = size
@@ -247,6 +272,16 @@ struct MenuCard: View {
 @MainActor final class FloatingPanel {
     static let shared = FloatingPanel()
     private var panel: NSPanel?
+    func resizeToFit() {
+        guard let panel, let view = panel.contentView else { return }
+        view.layoutSubtreeIfNeeded()
+        let size = view.fittingSize
+        guard size.height > 0, abs(panel.frame.height - size.height) > 0.5 else { return }
+        let top = panel.frame.maxY
+        panel.setContentSize(size)
+        panel.setFrameOrigin(NSPoint(x: panel.frame.minX, y: top - panel.frame.height))
+    }
+
     func show(monitor: Monitor) {
         if let panel {
             panel.makeKeyAndOrderFront(nil)

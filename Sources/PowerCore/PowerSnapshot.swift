@@ -44,6 +44,7 @@ public struct PowerSnapshot: Codable, Equatable, Sendable {
     public var powerFlowSettling = false
     /// Both input and load were read directly from SMC in this sample.
     public var hasDirectPowerFlow = false
+    public var phone: PhoneSnapshot?
     public var notes: [String] = []
 
     public init() {}

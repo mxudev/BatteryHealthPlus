@@ -75,3 +75,15 @@ NSMenu delegate callbacks track whether the status menu is open; no app activati
 - Successfully read `PSTR` without root, in the normal host. Desktop presentation is rendered and parser-tested; no physical Mac mini, iMac, Mac Studio, or Mac Pro was available for hardware testing.
 - Rendered the menu, overview, floating panel, and desktop power-only layout in light and dark appearances; inspected the app’s live views.
 - No App Store submission, Developer ID signing, notarization, or older-macOS hardware test was performed.
+
+## Connected iPhone telemetry
+
+The optional phone reader dynamically loads Apple's private `MobileDevice.framework` and uses an existing trusted USB session to query `com.apple.mobile.diagnostics_relay`. It requests only the `IOPMPowerSource` registry entry. There are no pairing, install, reboot, charging-control, or filesystem commands. Wi-Fi devices are excluded. Missing framework symbols disable the reader gracefully. The first detected USB iPhone is displayed; no personal device name or serial number is collected in the snapshot.
+
+The response's `PowerTelemetryData.SystemPowerIn`, `SystemLoad`, and signed `BatteryPower` are converted from mW to W. Missing or invalid values remain unavailable. `AdapterDetails.Watts` is a connection limit, never substituted for measured input. Phone input is measured on the phone side: it excludes cable losses and may originate from a powered hub rather than the Mac. It is not added to or subtracted from the Mac's existing readings.
+
+The parent app starts its own executable in a read-only command mode, independently of Mac sampling, approximately every five seconds while visible. A six-second deadline terminates a blocked reader, with a one-second grace before killing that child only. Failed reads clear previous values; cached phone results expire after 15 seconds, and sleep clears them. No background service or root helper is installed. The private framework runs only in the short-lived child, containing crashes as well as hangs.
+
+References: [Meta's MobileDevice service documentation](https://fbidb.io/idb/fbdevicecontrol/) and [go-ios's diagnostics reader](https://github.com/danielpaulus/go-ios/blob/main/ios/diagnostics/diagnostics.go). The implementation here is a small independent read-only client.
+
+Validated on 6 November 2026 against the directly connected, already-trusted iPhone: the native reader returned 10.940 W input, 2.149 W device load, and 8.791 W battery power in one sample. The phone supplies its own telemetry cadence; five-second polling does not guarantee five-second hardware updates. A physical hub, untrusted phone, and other iOS/hardware versions have not been tested.
